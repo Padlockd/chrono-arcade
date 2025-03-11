@@ -19,6 +19,11 @@ clock = pygame.time.Clock()
 FPS = 30
 restart_game = False
 
+# MQTT settings
+BROKER = "10.0.5.50"
+PUB_TOPIC = "Arcade/Racing/pub"
+SUB_TOPIC = "Arcade/Racing/sub"
+
 # Setup display
 pre_display = pygame.surface.Surface((600,800))
 screen = pygame.display.set_mode((800,600), pygame.FULLSCREEN)
@@ -130,6 +135,25 @@ class Obstacle(pygame.sprite.Sprite):
         self.rect.y += self.speed
         if self.rect.y > HEIGHT:
             self.kill()
+
+def on_message(client, userdata, message):
+    global restart_game
+    if message.payload.decode() == "restart":
+        restart_game = True
+
+def on_connect(client, userdata, flags, properties):
+    try:
+        client.subscribe(SUB_TOPIC)
+    except:
+        print("Failed to subscribe")
+
+# Initialize MQTT client
+client = mqtt.Client()
+client.on_message = on_message
+client.on_connect = on_connect
+client.connect(BROKER)
+restart_game = False
+background = Background()
 
 def main(lives):
     global SCALE_FACTOR
