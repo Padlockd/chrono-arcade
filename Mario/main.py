@@ -3,6 +3,7 @@ import sys
 import texture
 import glitch as G
 import random
+import string
 #import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
 
@@ -121,6 +122,7 @@ FONT_PATH = "joystix monospace.otf"
 score_font = pygame.font.Font(FONT_PATH, int(24 * SCALE_FACTOR))
 main_font = pygame.font.Font(FONT_PATH, int(36 * SCALE_FACTOR))
 title_font = pygame.font.Font(FONT_PATH, int(52 * SCALE_FACTOR))
+score = 0
 
 # Sounds
 COIN_SOUND = pygame.mixer.Sound("./Audio/SMCoin.wav")
@@ -147,6 +149,7 @@ class Player(pygame.sprite.Sprite):
         self.is_controllable = True
 
     def update(self, platforms, lucky_blocks):
+        global score
         self.speed_y += self.gravity
         self.rect.y += self.speed_y
         new_items = []
@@ -164,6 +167,7 @@ class Player(pygame.sprite.Sprite):
                         self.rect.top = block.rect.bottom
                         self.speed_y = 0
                         new_items.append(block.open())
+                        score += 250
 
             for platform in platforms:
                 if self.rect.colliderect(platform.rect):
@@ -318,10 +322,12 @@ class Goomba(pygame.sprite.Sprite):
             self.speed_x = - self.speed_x
 
     def die(self):
+        global score
         self.death_counter = 30
         self.texture.set_sprite_set(GOOMBA_DEATH_SPRITE)
         self.image = self.texture.get_sprite()
         GOOMBA_DEATH_SOUND.play()
+        score += 100
                 
     def draw(self, screen, camera_x):
         screen.blit(self.image, (self.rect.x - camera_x, self.rect.y))
@@ -471,6 +477,7 @@ client.connect(BROKER)
 restart_game = False
 
 def main(lives):
+    global score
     # Game initialization
     player = Player()
 
@@ -560,6 +567,7 @@ def main(lives):
     # Game loop
     running = True
     win = False
+    score = 0
     while death_delay > 0:
         if restart_game:
             return True
@@ -573,6 +581,7 @@ def main(lives):
             r = 12
             g = 0
             b = 0
+            score = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
             
         if player.rect.x > 76.5 * TILE_SIZE and glitch is None:
             glitch = G.Glitch(HEIGHT, SCALE_FACTOR)
@@ -627,6 +636,11 @@ def main(lives):
         # Draw player with camera offset
         pre_display.blit(player.image, (player.rect.x - camera_x, player.rect.y))
 
+        if isinstance(score, int):
+            score_text = score_font.render(f"Score: {score:04d}", False, (255, 255, 255))
+        else:
+            score_text = score_font.render(f"Score: {score}", False, (255, 255, 255))
+        pre_display.blit(score_text, (5, 5))
         if glitch is not None:
             glitch.update(WIDTH)
             glitch.draw(pre_display, WIDTH)
