@@ -362,8 +362,8 @@ if __name__ == "__main__":
     while True:
         screen.fill((0, 0, 0))
         pygame.display.flip()
-        pygame.mixer.stop()
-        
+        pygame.mixer.music.stop()
+
         is_active = False
         while not is_active:
             pygame.time.wait(100)
