@@ -771,13 +771,13 @@ def await_start():
 
 def lose():
     pre_display.fill(BLACK)
-    glitch = G.Glitch(WIDTH, SCALE_FACTOR)
+    glitch = G.Glitch(HEIGHT, SCALE_FACTOR)
     GLITCH_SOUND.play(-1)
-    while glitch.height < HEIGHT * 3:
+    while glitch.height < WIDTH * 3:
         message = main_font.render("Game Over", True, (255, 0, 0))
         pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
-        glitch.update()
-        glitch.draw(pre_display)
+        glitch.update(HEIGHT)
+        glitch.draw(pre_display, HEIGHT)
         
         screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
         pygame.display.flip()
