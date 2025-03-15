@@ -769,6 +769,21 @@ def await_start():
         clock.tick(FPS)
     return True
 
+def lose():
+    pre_display.fill(BLACK)
+    glitch = G.Glitch(WIDTH, SCALE_FACTOR)
+    GLITCH_SOUND.play(-1)
+    while glitch.height < HEIGHT * 3:
+        message = main_font.render("Game Over", True, (255, 0, 0))
+        pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
+        glitch.update()
+        glitch.draw(pre_display)
+        
+        screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+        pygame.display.flip()
+        clock.tick(FPS)
+    pygame.mixer.fadeout(1500)
+
 if __name__ == "__main__":
     client.loop_start()
 
