@@ -367,6 +367,9 @@ def main(lives):
     pygame.mixer.music.queue("./Audio/SIMusicLoop.wav", ".wav", -1)
 
     while enemy_group.descend():
+        if restart_game:
+            return True
+
         pre_display.fill(BLACK)
         background.update()
         background.draw(pre_display)
@@ -563,6 +566,7 @@ if __name__ == "__main__":
     while True:
         screen.fill((0, 0, 0))
         pygame.display.flip()
+        pygame.mixer.stop()
 
         is_active = False
         while not is_active:
