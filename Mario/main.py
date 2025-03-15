@@ -759,9 +759,12 @@ def await_start():
     return True
 
 if __name__ == "__main__":
+    client.loop_start()
+
     while True:
         screen.fill((0, 0, 0))
         pygame.display.flip()
+        pygame.mixer.music.stop()
         
         is_active = False
         while not is_active:
@@ -788,3 +791,5 @@ if __name__ == "__main__":
 
 pygame.quit()
 sys.exit()
+
+client.loop_stop()

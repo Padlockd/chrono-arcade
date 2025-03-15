@@ -358,7 +358,7 @@ def await_start():
     return True
 
 if __name__ == "__main__":
-    #client.loop_start()
+    client.loop_start()
     while True:
         screen.fill((0, 0, 0))
         pygame.display.flip()
@@ -387,3 +387,5 @@ if __name__ == "__main__":
                 else:
                     pygame.time.wait(1500)
                     lives -= 1
+
+client.loop_stop()
