@@ -7,12 +7,12 @@ import string
 import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
 
-#GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BOARD)
 LEFT_PIN = 3
 RIGHT_PIN = 5
 JUMP_PIN = 7
 COIN_PIN = 11
-#GPIO.setup([LEFT_PIN, RIGHT_PIN, JUMP_PIN, COIN_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup([LEFT_PIN, RIGHT_PIN, JUMP_PIN, COIN_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # Initialize Pygame
 pygame.init()
@@ -242,10 +242,10 @@ class Player(pygame.sprite.Sprite):
 
         # Player movement
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:# or not GPIO.input(LEFT_PIN):
+        if keys[pygame.K_LEFT] or not GPIO.input(LEFT_PIN):
             self.move(-1)
             self.texture.set_flipped(True)
-        if keys[pygame.K_RIGHT]:# or not GPIO.input(RIGHT_PIN):
+        if keys[pygame.K_RIGHT] or not GPIO.input(RIGHT_PIN):
             self.move(1)
             self.texture.set_flipped(False)
         if not GPIO.input(JUMP_PIN):

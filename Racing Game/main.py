@@ -6,11 +6,11 @@ import texture
 import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
 
-#GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BOARD)
 LEFT_PIN = 3
 RIGHT_PIN = 5
 COIN_PIN = 11
-#GPIO.setup([LEFT_PIN, RIGHT_PIN, COIN_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup([LEFT_PIN, RIGHT_PIN, COIN_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # Initialize pygame
 pygame.init()
@@ -186,8 +186,8 @@ def main(lives):
     pygame.mixer.music.load("./Audio/RMusicLoop.wav")
     pygame.mixer.music.play()
 
-    #prev_left_state = GPIO.input(LEFT_PIN)
-    #prev_right_state = GPIO.input(RIGHT_PIN)
+    prev_left_state = GPIO.input(LEFT_PIN)
+    prev_right_state = GPIO.input(RIGHT_PIN)
 
     while running:
         if restart_game:
