@@ -437,8 +437,8 @@ class Castle(pygame.sprite.Sprite):
                 glitch[0].x = random.randint(0, 5 * TILE_SIZE - glitch[0].w) + 75 * TILE_SIZE
                 glitch[0].y = random.randint(0, 5 * TILE_SIZE - glitch[0].h) + 9 * TILE_SIZE
             else:
-                glitch[0].x = min(max(75 * TILE_SIZE, glitch[0].x + random.randint(-10, 10)), 3840 - glitch[0].w)
-                glitch[0].y = min(max(9 * TILE_SIZE, glitch[0].y + random.randint(-10, 10)), 672 - glitch[0].h)
+                glitch[0].x = min(max(75 * TILE_SIZE, glitch[0].x + random.randint(-10, 10)), (80 * TILE_SIZE) - glitch[0].w)
+                glitch[0].y = min(max(9 * TILE_SIZE, glitch[0].y + random.randint(-10, 10)), (14 * TILE_SIZE) - glitch[0].h)
                 
             
     def draw(self, screen, camera_x):
