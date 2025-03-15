@@ -808,14 +808,14 @@ if __name__ == "__main__":
                 break
             else:
                 if lives <= 1:
-                    #lose()
+                    lose()
                     while not restart_game:
                         pygame.time.wait(100)
                     break
                 else:
                     lives -= 1
 
+client.loop_stop()
+
 pygame.quit()
 sys.exit()
-
-client.loop_stop()
