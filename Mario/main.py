@@ -133,6 +133,8 @@ GOOMBA_DEATH_SOUND = pygame.mixer.Sound("./Audio/SMGoombaDeath.wav")
 GOOMBA_DEATH_SOUND.set_volume(0.25)
 GLITCH_SOUND = pygame.mixer.Sound("./Audio/Glitch.wav")
 GLITCH_SOUND.set_volume(0.25)
+PLAYER_DEATH_SOUND = pygame.mixer.Sound("./Audio/SMPlayerDeath.wav")
+PLAYER_DEATH_SOUND.set_volume(0.25)
 START_SOUND = pygame.mixer.Sound("./Audio/CountdownChime.wav")
 START_SOUND.set_volume(0.25)
 
@@ -222,6 +224,7 @@ class Player(pygame.sprite.Sprite):
     def die(self):
         if self.is_controllable:
             self.texture.set_sprite_set(PLAYER_DEATH_SPRITE)
+            PLAYER_DEATH_SOUND.play()
             self.is_controllable = False
             self.speed_y = self.jump_strength * SCALE_FACTOR
             self.speed_x = 0
