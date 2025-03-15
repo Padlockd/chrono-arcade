@@ -420,8 +420,8 @@ class Castle(pygame.sprite.Sprite):
         for i in range(30):
             w = random.randint(5, 25)
             h = random.randint(5, 10)
-            x = random.randint(0, 240 - w) + self.rect.x
-            y = random.randint(0, 240 - h) + self.rect.y
+            x = random.randint(0, 5 * TILE_SIZE - w) + self.rect.x
+            y = random.randint(0, 5 * TILE_SIZE - h) + self.rect.y
             self.glitch_rects.append([pygame.Rect(x, y, w, h), 0, 0, 0])
 
     def update(self):
@@ -434,8 +434,8 @@ class Castle(pygame.sprite.Sprite):
             glitch[0].h = min(max(5, glitch[0].h + random.randint(-2, 2)), 10)
 
             if random.randint(0, 20) == 0:
-                glitch[0].x = random.randint(0, 240 - glitch[0].w) + 75 * TILE_SIZE
-                glitch[0].y = random.randint(0, 240 - glitch[0].h) + 9 * TILE_SIZE
+                glitch[0].x = random.randint(0, 5 * TILE_SIZE - glitch[0].w) + 75 * TILE_SIZE
+                glitch[0].y = random.randint(0, 5 * TILE_SIZE - glitch[0].h) + 9 * TILE_SIZE
             else:
                 glitch[0].x = min(max(75 * TILE_SIZE, glitch[0].x + random.randint(-10, 10)), 3840 - glitch[0].w)
                 glitch[0].y = min(max(9 * TILE_SIZE, glitch[0].y + random.randint(-10, 10)), 672 - glitch[0].h)
@@ -517,7 +517,8 @@ def main(lives):
         (62, 10, 1, 4, BLOCK_SPRITE, False),
         (63, 9, 1, 6, BLOCK_SPRITE, False),
 
-        (81, 9, 1, 5, BLOCK_SPRITE, False),
+        (84, 9, 1, 5, BLOCK_SPRITE, False), #End Wall
+        (-1, 9, 1, 5, BLOCK_SPRITE, False), #Start Wall
     ]
     level.extend(create_floor_section(-1, 14, 24, 6))
     level.extend(create_floor_section(26, 14, 12, 6))
