@@ -22,7 +22,7 @@ pygame.mixer.init()
 pre_display = pygame.surface.Surface((480,640))
 screen = pygame.display.set_mode((640,480), pygame.FULLSCREEN)
 WIDTH, HEIGHT = 480, 640
-SCALE_FACTOR = 1
+SCALE_FACTOR = 0.66
 pygame.mouse.set_visible(False)
 
 # Colors
@@ -44,8 +44,8 @@ clock = pygame.time.Clock()
 FPS = 30
 
 #SPRITES AND STUFF
-TILE_SIZE = 48
-sprite_sheet = texture.SpriteSheet("./Sprites.png", 3, (0, 0, 0))
+TILE_SIZE = 32
+sprite_sheet = texture.SpriteSheet("./Sprites.png", 2, (0, 0, 0))
 FLOOR_SPRITE = sprite_sheet.images_at([
     pygame.Rect(64, 0, 16, 16)
 ])
@@ -415,7 +415,7 @@ class Castle(pygame.sprite.Sprite):
         self.texture = texture.Texture(CASTLE_SPRITE, 1)
         self.image = self.texture.get_sprite()
         self.rect = self.image.get_rect()
-        self.rect.topleft = (3600, 432)
+        self.rect.topleft = (75 * TILE_SIZE, 9 * TILE_SIZE)
         self.glitch_rects = []
         for i in range(30):
             w = random.randint(5, 25)
@@ -434,11 +434,11 @@ class Castle(pygame.sprite.Sprite):
             glitch[0].h = min(max(5, glitch[0].h + random.randint(-2, 2)), 10)
 
             if random.randint(0, 20) == 0:
-                glitch[0].x = random.randint(0, 240 - glitch[0].w) + 3600
-                glitch[0].y = random.randint(0, 240 - glitch[0].h) + 432
+                glitch[0].x = random.randint(0, 240 - glitch[0].w) + 75 * TILE_SIZE
+                glitch[0].y = random.randint(0, 240 - glitch[0].h) + 9 * TILE_SIZE
             else:
-                glitch[0].x = min(max(3600, glitch[0].x + random.randint(-10, 10)), 3840 - glitch[0].w)
-                glitch[0].y = min(max(432, glitch[0].y + random.randint(-10, 10)), 672 - glitch[0].h)
+                glitch[0].x = min(max(75 * TILE_SIZE, glitch[0].x + random.randint(-10, 10)), 3840 - glitch[0].w)
+                glitch[0].y = min(max(9 * TILE_SIZE, glitch[0].y + random.randint(-10, 10)), 672 - glitch[0].h)
                 
             
     def draw(self, screen, camera_x):
