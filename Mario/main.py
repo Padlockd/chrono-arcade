@@ -19,9 +19,9 @@ pygame.init()
 pygame.mixer.init()
 
 # Screen dimensions
-pre_display = pygame.surface.Surface((600,800))
-screen = pygame.display.set_mode((800,600), pygame.FULLSCREEN)
-WIDTH, HEIGHT = 600, 800
+pre_display = pygame.surface.Surface((480,640))
+screen = pygame.display.set_mode((640,480), pygame.FULLSCREEN)
+WIDTH, HEIGHT = 480, 640
 SCALE_FACTOR = 1
 pygame.mouse.set_visible(False)
 
@@ -32,7 +32,7 @@ GREEN = (30, 180, 110)
 BLUE = (0, 0, 255)
 
 # MQTT settings
-BROKER = "10.0.5.50"
+BROKER = "192.168.1.127"
 PUB_TOPIC = "Arcade/Mario/pub"
 SUB_TOPIC = "Arcade/Mario/sub"
 
