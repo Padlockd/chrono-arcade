@@ -360,6 +360,9 @@ def await_start():
 if __name__ == "__main__":
     #client.loop_start()
     while True:
+        screen.fill((0, 0, 0))
+        pygame.display.flip()
+        
         is_active = False
         while not is_active:
             pygame.time.wait(100)
