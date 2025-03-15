@@ -461,7 +461,7 @@ def create_floor_section(x, y, w, h):
 def on_message(client, userdata, message):
     global restart_game
     global is_active
-    payload = message.payload.decode();
+    payload = message.payload.decode()
     print(payload)
     if payload == "lock":
         restart_game = True
