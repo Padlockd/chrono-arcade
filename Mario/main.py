@@ -461,9 +461,11 @@ def create_floor_section(x, y, w, h):
 def on_message(client, userdata, message):
     global restart_game
     global is_active
-    if message.payload.decode() == "lock":
+    payload = message.payload.decode();
+    print(payload)
+    if payload == "lock":
         restart_game = True
-    if message.payload.decode() == "activate":
+    if payload == "activate":
         is_active = True
 
 def on_connect(client, userdata, flags, properties):
@@ -765,10 +767,10 @@ if __name__ == "__main__":
         while not is_active:
             pygame.time.wait(100)
             
+        restart_game = False
         if not await_start(): # await_start() returns False if restart_game == True
             continue
         lives = 5
-        restart_game = False
         
         while True:
             if main(lives): # if player wins

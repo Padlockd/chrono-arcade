@@ -367,10 +367,10 @@ if __name__ == "__main__":
         while not is_active:
             pygame.time.wait(100)
             
+        restart_game = False
         if not await_start(): # await_start() returns False if restart_game == True
             continue
         lives = 5
-        restart_game = False
         
         while True:
             if main(lives): # if player wins

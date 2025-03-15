@@ -563,14 +563,14 @@ if __name__ == "__main__":
     while True:
         screen.fill((0, 0, 0))
         pygame.display.flip()
-        
+
         is_active = False
         while not is_active:
             pygame.time.wait(100)
             
+        restart_game = False
         if not await_start(): # await_start() returns False if restart_game == True
             continue
-        restart_game = False
         lives = 3
 
         while True:
