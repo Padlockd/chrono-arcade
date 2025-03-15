@@ -4,7 +4,7 @@ import texture
 import glitch as G
 import random
 import string
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
 
 #GPIO.setmode(GPIO.BOARD)
@@ -248,10 +248,10 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_RIGHT]:# or not GPIO.input(RIGHT_PIN):
             self.move(1)
             self.texture.set_flipped(False)
-        """if not GPIO.input(JUMP_PIN):
+        if not GPIO.input(JUMP_PIN):
             self.jump()
         if GPIO.input(LEFT_PIN) and GPIO.input(RIGHT_PIN) and not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]):
-            self.speed_x = 0"""
+            self.speed_x = 0
 
 # Platform class
 class Platform(pygame.sprite.Sprite):
@@ -460,8 +460,11 @@ def create_floor_section(x, y, w, h):
 
 def on_message(client, userdata, message):
     global restart_game
-    if message.payload.decode() == "restart":
+    global is_active
+    if message.payload.decode() == "lock":
         restart_game = True
+    if message.payload.decode() == "activate":
+        is_active = True
 
 def on_connect(client, userdata, flags, properties):
     try:
@@ -475,9 +478,12 @@ client.on_message = on_message
 client.on_connect = on_connect
 client.connect(BROKER)
 restart_game = False
+is_active = False
 
 def main(lives):
     global score
+    global restart_game
+
     # Game initialization
     player = Player()
 
@@ -661,6 +667,8 @@ def main(lives):
     return win
 
 def await_start():
+    global restart_game
+
     waiting = True
     counter = 0
     countdown = False
@@ -699,6 +707,9 @@ def await_start():
         clouds.add(Cloud(x, y, w))
 
     while True:
+        if restart_game:
+            return False
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -708,9 +719,9 @@ def await_start():
                    countdown = True
                    counter = FPS * 3
      
-        """if not GPIO.input(COIN_PIN):
+        if not GPIO.input(COIN_PIN):
             countdown = True
-            counter = 0"""
+            counter = 0
                     
         pre_display.fill(SKY)
         player_group.draw(pre_display)
@@ -743,10 +754,16 @@ def await_start():
         screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
         pygame.display.flip()
         clock.tick(FPS)
+    return True
 
 if __name__ == "__main__":
     while True:
-        await_start()
+        is_active = False
+        while not is_active:
+            pygame.time.wait(100)
+            
+        if not await_start(): # await_start() returns False if restart_game == True
+            continue
         lives = 5
         restart_game = False
         

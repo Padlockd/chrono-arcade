@@ -3,7 +3,7 @@ import random
 import string
 import glitch as g
 import texture
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
 
 #GPIO.setmode(GPIO.BOARD)
@@ -17,10 +17,9 @@ pygame.init()
 pygame.mixer.init()
 clock = pygame.time.Clock()
 FPS = 30
-restart_game = False
 
 # MQTT settings
-BROKER = "10.0.5.50"
+BROKER = "192.168.1.127"
 PUB_TOPIC = "Arcade/Racing/pub"
 SUB_TOPIC = "Arcade/Racing/sub"
 
@@ -138,8 +137,11 @@ class Obstacle(pygame.sprite.Sprite):
 
 def on_message(client, userdata, message):
     global restart_game
-    if message.payload.decode() == "restart":
+    global is_active
+    if message.payload.decode() == "lock":
         restart_game = True
+    if message.payload.decode() == "activate":
+        is_active = True
 
 def on_connect(client, userdata, flags, properties):
     try:
@@ -153,10 +155,11 @@ client.on_message = on_message
 client.on_connect = on_connect
 client.connect(BROKER)
 restart_game = False
-background = Background()
+is_active = False
 
 def main(lives):
     global SCALE_FACTOR
+    global restart_game
     # Constants
     LANE_WIDTH = (WIDTH - 180 * SCALE_FACTOR) // 3
     WHITE = (255, 255, 255)
@@ -187,6 +190,8 @@ def main(lives):
     #prev_right_state = GPIO.input(RIGHT_PIN)
 
     while running:
+        if restart_game:
+            return True
         pre_display.fill(WHITE)
         
         # Event handling
@@ -199,15 +204,13 @@ def main(lives):
                     car.move_left()
                 elif event.key == pygame.K_RIGHT:
                     car.move_right()
-
-        """            
+            
         if GPIO.input(LEFT_PIN) != prev_left_state and prev_left_state:
             car.move_left()
         if GPIO.input(RIGHT_PIN) != prev_right_state and prev_right_state:
             car.move_right()
         prev_left_state = GPIO.input(LEFT_PIN)
         prev_right_state = GPIO.input(RIGHT_PIN)
-        """
         
         # Spawn obstacles
         if glitch is None or glitch.delta_height == 1:
@@ -294,6 +297,7 @@ def lose():
 
 def await_start():
     global SCALE_FACTOR
+    global restart_game
     # Constants
     LANE_WIDTH = (WIDTH - 180 * SCALE_FACTOR) // 3
     WHITE = (255, 255, 255)
@@ -308,6 +312,9 @@ def await_start():
     countdown = False
     
     while True:
+        if restart_game:
+            return False
+
         road.update()
         
         # Draw car and obstacles
@@ -344,19 +351,23 @@ def await_start():
                     counter = 0
                     START_SOUND.play()
         
-        """
         if not GPIO.input(COIN_PIN):
             countdown = True
             counter = 0
             START_SOUND.play()
-        """
+    return True
 
 if __name__ == "__main__":
     #client.loop_start()
-
     while True:
-        await_start()
+        is_active = False
+        while not is_active:
+            pygame.time.wait(100)
+            
+        if not await_start(): # await_start() returns False if restart_game == True
+            continue
         lives = 5
+        restart_game = False
         
         while True:
             if main(lives): # if player wins

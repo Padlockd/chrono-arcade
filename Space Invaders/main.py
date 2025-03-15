@@ -33,7 +33,7 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
 # MQTT settings
-BROKER = "10.0.5.50"
+BROKER = "192.168.1.127"
 PUB_TOPIC = "Arcade/Space_Invaders/pub"
 SUB_TOPIC = "Arcade/Space_Invaders/sub"
 
@@ -318,8 +318,11 @@ class Background():
 
 def on_message(client, userdata, message):
     global restart_game
-    if message.payload.decode() == "restart":
+    global is_active
+    if message.payload.decode() == "lock":
         restart_game = True
+    if message.payload.decode() == "activate":
+        is_active = True
 
 def on_connect(client, userdata, flags, properties):
     try:
@@ -333,10 +336,13 @@ client.on_message = on_message
 client.on_connect = on_connect
 client.connect(BROKER)
 restart_game = False
+is_active = False
 background = Background()
 
 def main(lives):
     global background
+    global restart_game
+
     # Initialize player and sprite groups
     player = Player()
     player_group = pygame.sprite.Group(player)
@@ -495,6 +501,8 @@ def lose():
 
 def await_start():
     global background
+    global restart_game
+
     waiting = True
     counter = 0
     countdown = False
@@ -503,6 +511,9 @@ def await_start():
     player_group = pygame.sprite.GroupSingle(player)
 
     while True:
+        if restart_game:
+            return False
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -544,12 +555,18 @@ def await_start():
         screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
         pygame.display.flip()
         clock.tick(FPS)
+    return True
     
 if __name__ == "__main__":
     client.loop_start()
 
     while True:
-        await_start()
+        is_active = False
+        while not is_active:
+            pygame.time.wait(100)
+            
+        if not await_start(): # await_start() returns False if restart_game == True
+            continue
         restart_game = False
         lives = 3
 
