@@ -134,7 +134,6 @@ GOOMBA_DEATH_SOUND.set_volume(0.25)
 GLITCH_SOUND = pygame.mixer.Sound("./Audio/Glitch.wav")
 GLITCH_SOUND.set_volume(0.25)
 PLAYER_DEATH_SOUND = pygame.mixer.Sound("./Audio/SMPlayerDeath.wav")
-PLAYER_DEATH_SOUND.set_volume(0.25)
 START_SOUND = pygame.mixer.Sound("./Audio/CountdownChime.wav")
 START_SOUND.set_volume(0.25)
 
