@@ -126,9 +126,15 @@ score = 0
 
 # Sounds
 COIN_SOUND = pygame.mixer.Sound("./Audio/SMCoin.wav")
+COIN_SOUND.set_volume(0.25)
 PLAYER_JUMP_SOUND = pygame.mixer.Sound("./Audio/SMPlayerJump.wav")
+PLAYER_JUMP_SOUND.set_volume(0.25)
 GOOMBA_DEATH_SOUND = pygame.mixer.Sound("./Audio/SMGoombaDeath.wav")
+GOOMBA_DEATH_SOUND.set_volume(0.25)
 GLITCH_SOUND = pygame.mixer.Sound("./Audio/Glitch.wav")
+GLITCH_SOUND.set_volume(0.25)
+START_SOUND = pygame.mixer.Sound("./Audio/CountdownChime.wav")
+START_SOUND.set_volume(0.25)
 
 # Player class
 class Player(pygame.sprite.Sprite):
@@ -719,12 +725,14 @@ def await_start():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                   countdown = True
-                   counter = FPS * 3
+                    countdown = True
+                    counter = FPS * 3
+                    START_SOUND.play()
      
         if not GPIO.input(COIN_PIN):
             countdown = True
-            counter = 0
+            counter = FPS * 3
+            START_SOUND.play()
                     
         pre_display.fill(SKY)
         player_group.draw(pre_display)
