@@ -782,6 +782,8 @@ def lose():
         screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
         pygame.display.flip()
         clock.tick(FPS)
+    screen.fill((0, 0, 0))
+    pygame.display.flip()
     pygame.mixer.fadeout(1500)
 
 if __name__ == "__main__":
