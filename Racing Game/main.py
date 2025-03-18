@@ -328,8 +328,8 @@ def await_start():
         road.draw(pre_display)
         car_group.draw(pre_display)
 
-        title1 = title_font.render("Cosmic", False, (255, 0, 255))
-        title2 = title_font.render("Clash", False, (255, 0, 255))
+        title1 = title_font.render("Neon", False, (255, 0, 255))
+        title2 = title_font.render("Drift", False, (255, 0, 255))
         
         pre_display.blit(title1, (WIDTH // 2 - title1.get_width() // 2, HEIGHT // 2 - title1.get_height() // 2 - 5 * SCALE_FACTOR))
         pre_display.blit(title2, (WIDTH // 2 - title2.get_width() // 2, HEIGHT // 2 + 5 * SCALE_FACTOR))

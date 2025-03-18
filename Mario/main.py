@@ -753,8 +753,8 @@ def await_start():
         for cloud in clouds:
             cloud.draw(pre_display, 0)
         
-        title1 = title_font.render("Cosmic", False, (0,0,0))
-        title2 = title_font.render("Clash", False, (0,0,0))
+        title1 = title_font.render("Pixel", False, (0,0,0))
+        title2 = title_font.render("Jungle", False, (0,0,0))
 
         pre_display.blit(title1, (WIDTH // 2 - title1.get_width() // 2, HEIGHT // 2 - title1.get_height() // 2 - 5 * SCALE_FACTOR))
         pre_display.blit(title2, (WIDTH // 2 - title2.get_width() // 2, HEIGHT // 2 + 5 * SCALE_FACTOR))
