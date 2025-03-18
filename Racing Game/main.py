@@ -11,6 +11,8 @@ LEFT_PIN = 3
 RIGHT_PIN = 5
 COIN_PIN = 11
 GPIO.setup([LEFT_PIN, RIGHT_PIN, COIN_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+COIN_POWER_PIN = 8
+GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
 
 # Initialize pygame
 pygame.init()
@@ -142,8 +144,10 @@ def on_message(client, userdata, message):
     print(payload)
     if payload == "lock":
         restart_game = True
+        GPIO.output(COIN_POWER_PIN, GPIO.LOW)
     if payload == "activate":
         is_active = True
+        GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
 
 def on_connect(client, userdata, flags, properties):
     try:
