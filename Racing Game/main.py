@@ -144,11 +144,11 @@ def on_message(client, userdata, message):
     print(payload)
     if payload == "lock":
         restart_game = True
-        GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+        GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
         client.publish(PUB_TOPIC, "Locked")
     if payload == "activate":
         is_active = True
-        GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
+        GPIO.output(COIN_POWER_PIN, GPIO.LOW)
 
 def on_connect(client, userdata, flags, properties):
     try:
@@ -380,7 +380,7 @@ if __name__ == "__main__":
         if not await_start(): # await_start() returns False if restart_game == True
             continue
         lives = 5
-        GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+        GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
         client.publish(PUB_TOPIC, "Started")
         
         while True:
