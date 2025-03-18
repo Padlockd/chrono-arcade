@@ -379,6 +379,7 @@ if __name__ == "__main__":
         if not await_start(): # await_start() returns False if restart_game == True
             continue
         lives = 5
+        GPIO.output(COIN_POWER_PIN, GPIO.LOW)
         
         while True:
             if main(lives): # if player wins
