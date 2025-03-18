@@ -476,6 +476,7 @@ def on_message(client, userdata, message):
     if payload == "lock":
         restart_game = True
         GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
+        client.publish(PUB_TOPIC, "Locked")
     if payload == "activate":
         is_active = True
         GPIO.output(COIN_POWER_PIN, GPIO.LOW)
@@ -807,15 +808,18 @@ if __name__ == "__main__":
             continue
         lives = 5
         GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
+        client.publish(PUB_TOPIC, "Started")
         
         while True:
             if main(lives): # if player wins
+                client.publish(PUB_TOPIC, "Completed")
                 while not restart_game:
                     pygame.time.wait(100)
                 break
             else:
                 if lives <= 1:
                     lose()
+                    client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
                         pygame.time.wait(100)
                     break
