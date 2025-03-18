@@ -34,7 +34,7 @@ GREEN = (30, 180, 110)
 BLUE = (0, 0, 255)
 
 # MQTT settings
-BROKER = "192.168.1.127"
+BROKER = "192.168.1.80"
 PUB_TOPIC = "Arcade/Mario/pub"
 SUB_TOPIC = "Arcade/Mario/sub"
 

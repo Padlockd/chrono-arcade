@@ -21,7 +21,7 @@ clock = pygame.time.Clock()
 FPS = 30
 
 # MQTT settings
-BROKER = "192.168.1.127"
+BROKER = "192.168.1.80"
 PUB_TOPIC = "Arcade/Racing/pub"
 SUB_TOPIC = "Arcade/Racing/sub"
 

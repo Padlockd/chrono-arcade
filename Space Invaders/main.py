@@ -35,7 +35,7 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
 # MQTT settings
-BROKER = "192.168.1.127"
+BROKER = "192.168.1.80"
 PUB_TOPIC = "Arcade/Space_Invaders/pub"
 SUB_TOPIC = "Arcade/Space_Invaders/sub"
 
