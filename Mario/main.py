@@ -813,12 +813,24 @@ if __name__ == "__main__":
         while True:
             if main(lives): # if player wins
                 client.publish(PUB_TOPIC, "Completed")
+                screen.fill(BLACK)
+                
+                prompt = score_font.render("Climb through.", False, (255, 0, 0))
+                pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
+                screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+
+                pygame.display.flip()
                 while not restart_game:
                     pygame.time.wait(100)
                 break
             else:
                 if lives <= 1:
                     lose()
+                    
+                    prompt = score_font.render("Climb through.", False, (255, 0, 0))
+                    pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
+                    screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+
                     client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
                         pygame.time.wait(100)
