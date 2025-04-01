@@ -471,16 +471,21 @@ def create_floor_section(x, y, w, h):
 
 def on_message(client, userdata, message):
     global restart_game
+    global player_2_pressed
     global is_active
     payload = message.payload.decode()
     print(payload)
     if payload == "lock":
         restart_game = True
+        player_2_pressed = True
         GPIO.output(COIN_POWER_PIN, GPIO.LOW)
         client.publish(PUB_TOPIC, "Locked")
     if payload == "activate":
         is_active = True
+        player_2_pressed = True
         GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
+    if payload == "readyP2":
+        player_2_pressed = False
 
 def on_connect(client, userdata, flags, properties):
     try:
@@ -494,6 +499,7 @@ client.on_message = on_message
 client.on_connect = on_connect
 client.connect(BROKER)
 restart_game = False
+player_2_pressed = True
 is_active = False
 
 def main(lives):
@@ -805,6 +811,7 @@ if __name__ == "__main__":
             pygame.time.wait(100)
             
         restart_game = False
+        player_2_pressed = True
         if not await_start(): # await_start() returns False if restart_game == True
             continue
         lives = 5
@@ -833,7 +840,6 @@ if __name__ == "__main__":
                     screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
 
                     client.publish(PUB_TOPIC, "Completed")
-                    player_2_pressed = False
                     while not restart_game:
                         if GPIO.input(PLAYER_2_PIN) and not player_2_pressed:
                             client.publish(PUB_TOPIC, "P2 Pressed")
