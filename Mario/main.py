@@ -829,7 +829,9 @@ if __name__ == "__main__":
 
                 pygame.display.flip()
                 while not restart_game:
-                    pygame.time.wait(100)
+                    if not GPIO.input(PLAYER_2_PIN) and not player_2_pressed:
+                        client.publish(PUB_TOPIC, "P2 Pressed")
+                        player_2_pressed = True
                 break
             else:
                 if lives <= 1:
@@ -841,7 +843,7 @@ if __name__ == "__main__":
 
                     client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
-                        if GPIO.input(PLAYER_2_PIN) and not player_2_pressed:
+                        if not GPIO.input(PLAYER_2_PIN) and not player_2_pressed:
                             client.publish(PUB_TOPIC, "P2 Pressed")
                             player_2_pressed = True
                     break
