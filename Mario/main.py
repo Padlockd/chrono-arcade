@@ -12,7 +12,8 @@ LEFT_PIN = 3
 RIGHT_PIN = 5
 JUMP_PIN = 7
 COIN_PIN = 11
-GPIO.setup([LEFT_PIN, RIGHT_PIN, JUMP_PIN, COIN_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+PLAYER_2_PIN = 10
+GPIO.setup([LEFT_PIN, RIGHT_PIN, JUMP_PIN, COIN_PIN, PLAYER_2_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 COIN_POWER_PIN = 8
 GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
 
@@ -832,8 +833,11 @@ if __name__ == "__main__":
                     screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
 
                     client.publish(PUB_TOPIC, "Completed")
+                    player_2_pressed = False
                     while not restart_game:
-                        pygame.time.wait(100)
+                        if GPIO.input(PLAYER_2_PIN) and not player_2_pressed:
+                            client.publish(PUB_TOPIC, "P2 Pressed")
+                            player_2_pressed = True
                     break
                 else:
                     lives -= 1
