@@ -588,9 +588,9 @@ if __name__ == "__main__":
 
         while True:
             if main(lives): # if player wins
-                screen.fill(BLACK)
+                pre_display.fill(BLACK)
 
-                prompt = score_font.render("Pull to the right.", False, (255, 0, 0))
+                prompt = score_font.render("Slide right.", False, (255, 0, 0))
                 pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
                 screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
 
@@ -602,6 +602,7 @@ if __name__ == "__main__":
             else:
                 if lives <= 1:
                     lose()
+                    pre_display.fill(BLACK)
 
                     prompt = score_font.render("Slide right.", False, (255, 0, 0))
                     pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
