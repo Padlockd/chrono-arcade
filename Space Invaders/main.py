@@ -536,7 +536,7 @@ def await_start():
                     counter = 0
                     START_SOUND.play()
 
-        if coin_inserted:
+        if not GPIO.input(COIN_PIN):
             coin_inserted = False
             countdown = True
             counter = 0
@@ -546,7 +546,7 @@ def await_start():
         background.update()
         background.draw(pre_display)
 
-        player.animate()
+        #player.animate()
         player_group.draw(pre_display)
 
         title1 = title_font.render("Cosmic", False, WHITE)
