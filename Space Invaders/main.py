@@ -569,14 +569,14 @@ def await_start():
         clock.tick(FPS)
     return True
     
-def coin_callback():
+def coin_inserted_callback():
     global coin_inserted
     coin_inserted = True
 
 if __name__ == "__main__":
     client.loop_start()
     GPIO.add_event_detect(COIN_PIN, GPIO.FALLING, 
-            callback=button_pressed_callback, bouncetime=100)
+            callback=coin_inserted_callback, bouncetime=100)
     while True:
         screen.fill((0, 0, 0))
         pygame.display.flip()
