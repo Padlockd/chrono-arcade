@@ -522,6 +522,22 @@ def await_start():
     player = Player()
     player_group = pygame.sprite.GroupSingle(player)
 
+    pre_display.fill(BLACK)
+    background.update()
+    background.draw(pre_display)
+
+    player.animate()
+    player_group.draw(pre_display)
+
+    title1 = title_font.render("Cosmic", False, WHITE)
+    title2 = title_font.render("Clash", False, WHITE)
+
+    pre_display.blit(title1, (WIDTH // 2 - title1.get_width() // 2, HEIGHT // 2 - title1.get_height() // 2 - 5 * SCALE_FACTOR))
+    pre_display.blit(title2, (WIDTH // 2 - title2.get_width() // 2, HEIGHT // 2 + 5 * SCALE_FACTOR))
+
+    screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+    pygame.display.flip()
+
     while True:
         if restart_game:
             return False
@@ -541,20 +557,9 @@ def await_start():
             countdown = True
             counter = 0
             START_SOUND.play()
+            break
                     
-        pre_display.fill(BLACK)
-        background.update()
-        background.draw(pre_display)
-
-        #player.animate()
-        player_group.draw(pre_display)
-
-        title1 = title_font.render("Cosmic", False, WHITE)
-        title2 = title_font.render("Clash", False, WHITE)
-
-        pre_display.blit(title1, (WIDTH // 2 - title1.get_width() // 2, HEIGHT // 2 - title1.get_height() // 2 - 5 * SCALE_FACTOR))
-        pre_display.blit(title2, (WIDTH // 2 - title2.get_width() // 2, HEIGHT // 2 + 5 * SCALE_FACTOR))
-
+        """
         if countdown:
             prompt = score_font.render(str(((FPS * 3) - counter) // FPS + 1), False, GREEN)
             pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2 + title2.get_height()))
@@ -563,11 +568,8 @@ def await_start():
         elif (counter // 30) % 2 == 0:
             prompt = score_font.render("Insert Coin To Start", False, GREEN)
             pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2 + title2.get_height()))
-        counter += 1
-
-        screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
-        pygame.display.flip()
-        clock.tick(FPS)
+        counter += 1"
+        """
     return True
     
 def coin_inserted_callback():
