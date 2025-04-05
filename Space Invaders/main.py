@@ -513,6 +513,7 @@ def lose():
 def await_start():
     global background
     global restart_game
+    global coin_inserted
 
     waiting = True
     counter = 0
@@ -575,8 +576,7 @@ def coin_inserted_callback():
 
 if __name__ == "__main__":
     client.loop_start()
-    GPIO.add_event_detect(COIN_PIN, GPIO.FALLING, 
-            callback=coin_inserted_callback, bouncetime=100)
+    GPIO.add_event_detect(COIN_PIN, GPIO.FALLING, callback=coin_inserted_callback, bouncetime=100)
     while True:
         screen.fill((0, 0, 0))
         pygame.display.flip()
