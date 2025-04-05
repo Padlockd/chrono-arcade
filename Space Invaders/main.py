@@ -344,6 +344,7 @@ client.on_connect = on_connect
 client.connect(BROKER)
 restart_game = False
 is_active = False
+coin_inserted = False
 background = Background()
 
 def main(lives):
@@ -534,7 +535,8 @@ def await_start():
                     counter = 0
                     START_SOUND.play()
 
-        if not GPIO.input(COIN_PIN):
+        if coin_inserted:
+            coin_inserted = False
             countdown = True
             counter = 0
             START_SOUND.play()
@@ -567,9 +569,14 @@ def await_start():
         clock.tick(FPS)
     return True
     
+def coin_callback():
+    global coin_inserted
+    coin_inserted = True
+
 if __name__ == "__main__":
     client.loop_start()
-
+    GPIO.add_event_detect(COIN_PIN, GPIO.FALLING, 
+            callback=button_pressed_callback, bouncetime=100)
     while True:
         screen.fill((0, 0, 0))
         pygame.display.flip()
