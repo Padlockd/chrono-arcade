@@ -734,6 +734,30 @@ def await_start():
     for x, y, w in level_clouds:
         clouds.add(Cloud(x, y, w))
 
+    pre_display.fill(SKY)
+    player_group.draw(pre_display)
+
+    for platform in platforms:
+        platform.draw(pre_display, 0)
+
+    for block in lucky_blocks:
+        block.draw(pre_display, 0)
+
+    for cloud in clouds:
+        cloud.draw(pre_display, 0)
+    
+    title1 = title_font.render("Pixel", False, (0,0,0))
+    title2 = title_font.render("Jungle", False, (0,0,0))
+
+    pre_display.blit(title1, (WIDTH // 2 - title1.get_width() // 2, HEIGHT // 2 - title1.get_height() // 2 - 5 * SCALE_FACTOR))
+    pre_display.blit(title2, (WIDTH // 2 - title2.get_width() // 2, HEIGHT // 2 + 5 * SCALE_FACTOR))
+
+    prompt = score_font.render("Insert Coin To Start", False, (0, 255, 0))
+    pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2 + title2.get_height()))
+    
+    screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+    pygame.display.flip()
+    
     while True:
         if restart_game:
             return False
@@ -747,44 +771,14 @@ def await_start():
                     countdown = True
                     counter = FPS * 3
                     START_SOUND.play()
+                    break
      
         if not GPIO.input(COIN_PIN) or force_start:
             force_start = False
             countdown = True
             counter = FPS * 3
             START_SOUND.play()
-                    
-        pre_display.fill(SKY)
-        player_group.draw(pre_display)
-
-        for platform in platforms:
-            platform.draw(pre_display, 0)
-
-        for block in lucky_blocks:
-            block.draw(pre_display, 0)
-
-        for cloud in clouds:
-            cloud.draw(pre_display, 0)
-        
-        title1 = title_font.render("Pixel", False, (0,0,0))
-        title2 = title_font.render("Jungle", False, (0,0,0))
-
-        pre_display.blit(title1, (WIDTH // 2 - title1.get_width() // 2, HEIGHT // 2 - title1.get_height() // 2 - 5 * SCALE_FACTOR))
-        pre_display.blit(title2, (WIDTH // 2 - title2.get_width() // 2, HEIGHT // 2 + 5 * SCALE_FACTOR))
-
-        if countdown:
-            prompt = score_font.render(str(((FPS * 3) - counter) // FPS + 1), False, GREEN)
-            pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2 + title2.get_height()))
-            if counter >= FPS * 3:
-                break
-        elif (counter // 30) % 2 == 0:
-            prompt = score_font.render("Insert Coin To Start", False, (0, 255, 0))
-            pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2 + title2.get_height()))
-        counter += 1
-
-        screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
-        pygame.display.flip()
-        clock.tick(FPS)
+            break
     return True
 
 def lose():
