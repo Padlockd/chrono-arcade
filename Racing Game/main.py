@@ -140,6 +140,7 @@ class Obstacle(pygame.sprite.Sprite):
 def on_message(client, userdata, message):
     global restart_game
     global is_active
+    global force_start
     payload = message.payload.decode()
     print(payload)
     if payload == "lock":
@@ -149,6 +150,8 @@ def on_message(client, userdata, message):
     if payload == "activate":
         is_active = True
         GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+    if payload == "start":
+        force_start = True
 
 def on_connect(client, userdata, flags, properties):
     try:
@@ -162,6 +165,7 @@ client.on_message = on_message
 client.on_connect = on_connect
 client.connect(BROKER)
 restart_game = False
+force_start = False
 is_active = False
 
 def main(lives):
@@ -305,6 +309,7 @@ def lose():
 def await_start():
     global SCALE_FACTOR
     global restart_game
+    global force_start
     # Constants
     LANE_WIDTH = (WIDTH - 180 * SCALE_FACTOR) // 3
     WHITE = (255, 255, 255)
@@ -358,7 +363,8 @@ def await_start():
                     counter = 0
                     START_SOUND.play()
         
-        if not GPIO.input(COIN_PIN):
+        if not GPIO.input(COIN_PIN) or force_start:
+            force_start = False
             countdown = True
             counter = 0
             START_SOUND.play()

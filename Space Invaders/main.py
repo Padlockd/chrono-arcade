@@ -321,6 +321,7 @@ class Background():
 def on_message(client, userdata, message):
     global restart_game
     global is_active
+    global force_start
     payload = message.payload.decode()
     print(payload)
     if payload == "lock":
@@ -330,6 +331,8 @@ def on_message(client, userdata, message):
     if payload == "activate":
         is_active = True
         GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+    if payload == "start":
+        force_start = True
 
 def on_connect(client, userdata, flags, properties):
     try:
@@ -344,7 +347,7 @@ client.on_connect = on_connect
 client.connect(BROKER)
 restart_game = False
 is_active = False
-coin_inserted = False
+force_start = False
 background = Background()
 
 def main(lives):
@@ -513,7 +516,7 @@ def lose():
 def await_start():
     global background
     global restart_game
-    global coin_inserted
+    global force_start
 
     waiting = True
     counter = 0
@@ -552,8 +555,8 @@ def await_start():
                     counter = 0
                     START_SOUND.play()
 
-        if not GPIO.input(COIN_PIN):
-            coin_inserted = False
+        if not GPIO.input(COIN_PIN) or force_start:
+            force_start = False
             countdown = True
             counter = 0
             START_SOUND.play()
@@ -571,14 +574,9 @@ def await_start():
         counter += 1"
         """
     return True
-    
-def coin_inserted_callback():
-    global coin_inserted
-    coin_inserted = True
 
 if __name__ == "__main__":
     client.loop_start()
-    GPIO.add_event_detect(COIN_PIN, GPIO.FALLING, callback=coin_inserted_callback, bouncetime=100)
     while True:
         screen.fill((0, 0, 0))
         pygame.display.flip()

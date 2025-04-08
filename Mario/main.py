@@ -473,6 +473,7 @@ def on_message(client, userdata, message):
     global restart_game
     global player_2_pressed
     global is_active
+    global force_start
     payload = message.payload.decode()
     print(payload)
     if payload == "lock":
@@ -486,6 +487,8 @@ def on_message(client, userdata, message):
         GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
     if payload == "readyP2":
         player_2_pressed = False
+    if payload == "start":
+        force_start = True
 
 def on_connect(client, userdata, flags, properties):
     try:
@@ -499,6 +502,7 @@ client.on_message = on_message
 client.on_connect = on_connect
 client.connect(BROKER)
 restart_game = False
+force_start = False
 player_2_pressed = True
 is_active = False
 
@@ -691,6 +695,7 @@ def main(lives):
 
 def await_start():
     global restart_game
+    global force_start
 
     waiting = True
     counter = 0
@@ -743,7 +748,8 @@ def await_start():
                     counter = FPS * 3
                     START_SOUND.play()
      
-        if not GPIO.input(COIN_PIN):
+        if not GPIO.input(COIN_PIN) or force_start:
+            force_start = False
             countdown = True
             counter = FPS * 3
             START_SOUND.play()
