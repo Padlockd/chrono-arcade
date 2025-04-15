@@ -3,16 +3,21 @@ import random
 import string
 import glitch as g
 import texture
-import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
+import os.path
 
-GPIO.setmode(GPIO.BOARD)
-LEFT_PIN = 3
-RIGHT_PIN = 5
-COIN_PIN = 11
-GPIO.setup([LEFT_PIN, RIGHT_PIN, COIN_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
-COIN_POWER_PIN = 8
-GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
+try:
+    import RPi.GPIO as GPIO
+    GPIO.setmode(GPIO.BOARD)
+    LEFT_PIN = 3
+    RIGHT_PIN = 5
+    COIN_PIN = 11
+    GPIO.setup([LEFT_PIN, RIGHT_PIN, COIN_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    COIN_POWER_PIN = 8
+    GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
+    DEBUG = False
+except:
+    DEBUG = True
 
 # Initialize pygame
 pygame.init()
@@ -145,11 +150,13 @@ def on_message(client, userdata, message):
     print(payload)
     if payload == "lock":
         restart_game = True
-        GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
         client.publish(PUB_TOPIC, "Locked")
     if payload == "activate":
         is_active = True
-        GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.LOW)
     if payload == "start":
         force_start = True
 
@@ -386,7 +393,9 @@ if __name__ == "__main__":
         if not await_start(): # await_start() returns False if restart_game == True
             continue
         lives = 5
-        GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
+    
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
         client.publish(PUB_TOPIC, "Started")
         
         while True:

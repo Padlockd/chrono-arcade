@@ -4,18 +4,24 @@ import texture
 import glitch as G
 import random
 import string
-import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
+import os.path
 
-GPIO.setmode(GPIO.BOARD)
-LEFT_PIN = 3
-RIGHT_PIN = 5
-JUMP_PIN = 7
-COIN_PIN = 11
-PLAYER_2_PIN = 10
-GPIO.setup([LEFT_PIN, RIGHT_PIN, JUMP_PIN, COIN_PIN, PLAYER_2_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
-COIN_POWER_PIN = 8
-GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
+try:
+    import RPi.GPIO as GPIO
+    GPIO.setmode(GPIO.BOARD)
+    LEFT_PIN = 3
+    RIGHT_PIN = 5
+    JUMP_PIN = 7
+    COIN_PIN = 11
+    PLAYER_2_PIN = 10
+    GPIO.setup([LEFT_PIN, RIGHT_PIN, JUMP_PIN, COIN_PIN, PLAYER_2_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    COIN_POWER_PIN = 8
+    GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
+    DEBUG = False
+except:
+    print("Starting program without RPi.GPIO")
+    DEBUG = True
 
 # Initialize Pygame
 pygame.init()
@@ -253,15 +259,15 @@ class Player(pygame.sprite.Sprite):
 
         # Player movement
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] or not GPIO.input(LEFT_PIN):
+        if keys[pygame.K_LEFT] or (not DEBUG and not GPIO.input(LEFT_PIN)):
             self.move(-1)
             self.texture.set_flipped(True)
-        if keys[pygame.K_RIGHT] or not GPIO.input(RIGHT_PIN):
+        if keys[pygame.K_RIGHT] or (not DEBUG and not GPIO.input(RIGHT_PIN)):
             self.move(1)
             self.texture.set_flipped(False)
-        if not GPIO.input(JUMP_PIN):
+        if (not DEBUG and not GPIO.input(JUMP_PIN)):
             self.jump()
-        if GPIO.input(LEFT_PIN) and GPIO.input(RIGHT_PIN) and not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]):
+        if (not DEBUG and (GPIO.input(LEFT_PIN) and GPIO.input(RIGHT_PIN))) and not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]):
             self.speed_x = 0
 
 # Platform class
@@ -479,12 +485,14 @@ def on_message(client, userdata, message):
     if payload == "lock":
         restart_game = True
         player_2_pressed = True
-        GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.LOW)
         client.publish(PUB_TOPIC, "Locked")
     if payload == "activate":
         is_active = True
         player_2_pressed = True
-        GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
     if payload == "readyP2":
         player_2_pressed = False
     if payload == "start":
@@ -773,7 +781,7 @@ def await_start():
                     START_SOUND.play()
                     break
      
-        if not GPIO.input(COIN_PIN) or force_start:
+        if (not DEBUG and not GPIO.input(COIN_PIN)) or force_start:
             force_start = False
             countdown = True
             counter = FPS * 3
@@ -815,7 +823,8 @@ if __name__ == "__main__":
         if not await_start(): # await_start() returns False if restart_game == True
             continue
         lives = 5
-        GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.LOW)
         client.publish(PUB_TOPIC, "Started")
         
         while True:
@@ -829,7 +838,7 @@ if __name__ == "__main__":
 
                 pygame.display.flip()
                 while not restart_game:
-                    if not GPIO.input(PLAYER_2_PIN) and not player_2_pressed:
+                    if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
                         client.publish(PUB_TOPIC, "P2 Pressed")
                         player_2_pressed = True
                 break
@@ -843,7 +852,7 @@ if __name__ == "__main__":
 
                     client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
-                        if not GPIO.input(PLAYER_2_PIN) and not player_2_pressed:
+                        if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
                             client.publish(PUB_TOPIC, "P2 Pressed")
                             player_2_pressed = True
                     break

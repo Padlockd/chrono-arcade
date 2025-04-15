@@ -5,16 +5,22 @@ import sys
 import paho.mqtt.client as mqtt
 import texture
 import glitch as g
-import RPi.GPIO as GPIO
 
-GPIO.setmode(GPIO.BOARD)
-LEFT_PIN = 3
-RIGHT_PIN = 5
-SHOOT_PIN = 7
-COIN_PIN = 11
-GPIO.setup([LEFT_PIN, RIGHT_PIN, SHOOT_PIN, COIN_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
-COIN_POWER_PIN = 8
-GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
+try:
+    import RPi.GPIO as GPIO
+
+    GPIO.setmode(GPIO.BOARD)
+    LEFT_PIN = 3
+    RIGHT_PIN = 5
+    SHOOT_PIN = 7
+    COIN_PIN = 11
+    GPIO.setup([LEFT_PIN, RIGHT_PIN, SHOOT_PIN, COIN_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    COIN_POWER_PIN = 8
+    GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
+    DEBUG = False
+except:
+    print("Starting program without RPi.GPIO")
+    DEBUG = True
 
 # Initialize Pygame
 pygame.init()
@@ -45,6 +51,7 @@ pygame.display.set_caption("Space Invaders")
 # Clock for controlling frame rate
 clock = pygame.time.Clock()
 FPS = 30
+MAX_LEVEL = 2
 
 # Sprites and animations
 sprite_sheet = texture.SpriteSheet("EntitySprites.png", 4 * SCALE_FACTOR, (0, 0, 0))
@@ -108,7 +115,7 @@ class Player(pygame.sprite.Sprite):
 
         # gun stuff
         self.last_shot_time = 0
-        self.shoot_cooldown = 1000  # milliseconds
+        self.shoot_cooldown = 500  # milliseconds
         self.is_shooting = False
         self.gun_broken = False
         self.flash_cycle = 0
@@ -117,9 +124,9 @@ class Player(pygame.sprite.Sprite):
         self.texture.update()
         self.image = self.texture.get_sprite()
         
-        if (keys[pygame.K_LEFT] or not GPIO.input(LEFT_PIN)) and self.rect.left > 0:
+        if (keys[pygame.K_LEFT] or (not DEBUG and not GPIO.input(LEFT_PIN))) and self.rect.left > 0:
             self.rect.x -= self.speed
-        if (keys[pygame.K_RIGHT] or not GPIO.input(RIGHT_PIN)) and self.rect.right < WIDTH:
+        if (keys[pygame.K_RIGHT] or (not DEBUG and not GPIO.input(RIGHT_PIN))) and self.rect.right < WIDTH:
             self.rect.x += self.speed
 
     def animate(self):
@@ -184,9 +191,11 @@ class Enemy(pygame.sprite.Sprite):
 
 class EnemyGroup:
     def __init__(self):
+        global stage
         self.enemies = pygame.sprite.Group()
-        self.speed = 1 * SCALE_FACTOR
+        self.speed = 1 + stage
         self.bullets = pygame.sprite.Group()
+        self.shot_chance = 900 - (100 * stage)
 
     def add(self, enemy):
         self.enemies.add(enemy)
@@ -202,7 +211,7 @@ class EnemyGroup:
                         or (enemy.rect.left <= (25) and self.speed < 0)):
                     move_down = True
 
-                if random.randint(0, 800) == 0:
+                if random.randint(0, self.shot_chance) == 0:
                     bullet = enemy.shoot()
                     self.bullets.add(bullet)
 
@@ -213,7 +222,7 @@ class EnemyGroup:
             self.speed = -self.speed
             if not player_gun_broken:
                 for enemy in self.enemies:
-                    enemy.rect.y += 20 * SCALE_FACTOR
+                    enemy.rect.y += 40 * SCALE_FACTOR
 
     def descend(self):
         move_down = False
@@ -322,15 +331,22 @@ def on_message(client, userdata, message):
     global restart_game
     global is_active
     global force_start
+    global stage
+
     payload = message.payload.decode()
     print(payload)
     if payload == "lock":
         restart_game = True
-        GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
         client.publish(PUB_TOPIC, "Locked")
+
     if payload == "activate":
         is_active = True
-        GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+        stage = 1
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+
     if payload == "start":
         force_start = True
 
@@ -342,149 +358,170 @@ def on_connect(client, userdata, flags, properties):
 
 # Initialize MQTT client
 client = mqtt.Client()
-client.on_message = on_message
-client.on_connect = on_connect
-client.connect(BROKER)
+if not DEBUG:
+    client.on_message = on_message
+    client.on_connect = on_connect
+    client.connect(BROKER)
 restart_game = False
 is_active = False
 force_start = False
+stage = 1
 background = Background()
 
 def main(lives):
     global background
     global restart_game
+    global stage
 
-    # Initialize player and sprite groups
     player = Player()
     player_group = pygame.sprite.Group(player)
-    bullets = pygame.sprite.Group()
-    enemy_group = EnemyGroup()
 
-    # Create enemies
-    for row in range(4):
-        for col in range(7):
-            enemy = Enemy((60 + col * 50) * SCALE_FACTOR, (20 - row * 40) * SCALE_FACTOR)
-            enemy_group.add(enemy)
+    while stage <= MAX_LEVEL:
+        # Initialize player and sprite groups
+        bullets = pygame.sprite.Group()
+        enemy_group = EnemyGroup()
 
-    running = True
-    score = 0
-    kill_count = 0
-    win = False
+        # Create enemies
+        for row in range(4):
+            for col in range(7):
+                enemy = Enemy((60 + col * 50) * SCALE_FACTOR, (20 - row * 40) * SCALE_FACTOR)
+                enemy_group.add(enemy)
 
-    glitch = None
+        running = True
+        score = 0
+        kill_count = 0
+        win = False
 
-    pygame.mixer.music.load("./Audio/SIMusicIntro.wav")
-    pygame.mixer.music.play()
-    pygame.mixer.music.queue("./Audio/SIMusicLoop.wav", ".wav", -1)
+        glitch = None
 
-    while enemy_group.descend():
-        if restart_game:
-            return True
+        pygame.mixer.music.load("./Audio/SIMusicIntro.wav")
+        pygame.mixer.music.play()
+        pygame.mixer.music.queue("./Audio/SIMusicLoop.wav", ".wav", -1)
 
-        pre_display.fill(BLACK)
-        background.update()
-        background.draw(pre_display)
+        while enemy_group.descend():
+            if restart_game:
+                return True
 
-        player.animate()
-        player_group.draw(pre_display)
-        bullets.draw(pre_display)
-        enemy_group.draw(pre_display)
-        
-        screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
-        pygame.display.flip()
-        clock.tick(FPS)
+            pre_display.fill(BLACK)
+            background.update()
+            background.draw(pre_display)
 
-    life_sprite = texture.Texture(LIFE_SPRITES, 10).get_sprite()
-    life_text = score_font.render(f"x{lives}", True, WHITE)
-
-    while running:
-        if restart_game:
-            return True
-        
-        pre_display.fill(BLACK)
-
-        background.update()
-        background.draw(pre_display)
-
-        # Event handling
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    player.start_shooting()
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_SPACE:
-                    player.stop_shooting()
-        
-        if GPIO.input(SHOOT_PIN):
-            player.stop_shooting()
-        else:
-            player.start_shooting()
-                    
-        bullet = player.shoot()
-        if bullet:
-            bullets.add(bullet)
-
-        # Update
-        keys = pygame.key.get_pressed()
-        player.update(keys)
-        bullets.update()
-        enemy_group.update(player.gun_broken)
-
-        # Check for game over
-        if not player.gun_broken:
-            if enemy_group.has_reached_player() or enemy_group.check_bullet_collisions(player) > 0:
-                running = False
-                PLAYER_DEATH_SOUND.play()
-        
-        # Draw
-        player_group.draw(pre_display)
-        bullets.draw(pre_display)
-        enemy_group.draw(pre_display)
-
-        if player.flash_cycle == 1:
-            message = main_font.render("Gun Failure", True, RED)
-            pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
-
-        if glitch is None:
-            if kill_count >= 10:
-                player.break_gun()
-                glitch = g.Glitch(WIDTH, SCALE_FACTOR)
-                GLITCH_SOUND.play(-1)
-                pygame.mixer.music.stop()
+            player.animate()
+            player_group.draw(pre_display)
+            bullets.draw(pre_display)
+            enemy_group.draw(pre_display)
             
-            # Check for bullet-enemy collisions
-            col_check = enemy_group.check_collision(bullets)
-            score += col_check[0]
-            kill_count += col_check[1]
+            message = main_font.render(f"Level {stage}", True, RED)
+            pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
+        
+            screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+            pygame.display.flip()
+            clock.tick(FPS)
+
+        life_sprite = texture.Texture(LIFE_SPRITES, 10).get_sprite()
+        life_text = score_font.render(f"x{lives}", True, WHITE)
+
+        while running:
+            if restart_game:
+                return True
+            
+            pre_display.fill(BLACK)
+
+            background.update()
+            background.draw(pre_display)
+
+            # Event handling
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        player.start_shooting()
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE:
+                        player.stop_shooting()
+            
+            if (not DEBUG and GPIO.input(SHOOT_PIN)):
+                player.stop_shooting()
+            else:
+                player.start_shooting()
+                        
+            bullet = player.shoot()
+            if bullet:
+                bullets.add(bullet)
+
+            # Update
+            keys = pygame.key.get_pressed()
+            player.update(keys)
+            bullets.update()
+            enemy_group.update(player.gun_broken)
+
+            # Check for game over
+            if not player.gun_broken:
+                if enemy_group.has_reached_player() or enemy_group.check_bullet_collisions(player) > 0:
+                    running = False
+                    PLAYER_DEATH_SOUND.play()
+            
+            # Draw
+            player_group.draw(pre_display)
+            bullets.draw(pre_display)
+            enemy_group.draw(pre_display)
+
+            if player.flash_cycle == 1:
+                message = main_font.render("Gun Failure", True, RED)
+                pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
+
+            if glitch is None:
+                if kill_count >= 10 and stage == MAX_LEVEL:
+                    player.break_gun()
+                    glitch = g.Glitch(WIDTH, SCALE_FACTOR, -50)
+                    GLITCH_SOUND.play(-1)
+                    pygame.mixer.music.stop()
+                elif kill_count >= 28:
+                    stage += 1
+                    win = True
+                    break
+                
+                # Check for bullet-enemy collisions
+                col_check = enemy_group.check_collision(bullets)
+                score += col_check[0]
+                kill_count += col_check[1]
+            else:
+                glitch.update()
+                glitch.draw(pre_display)
+                score = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+                if glitch.height > HEIGHT * 3:
+                    running = False
+                    win = True
+                    pygame.mixer.fadeout(1500)
+
+            # Display score
+            score_text = score_font.render(f"Score: {score}", True, WHITE)
+            pre_display.blit(score_text, (10, 10))
+
+            pre_display.blit(life_text, (
+                    WIDTH - (10 * SCALE_FACTOR + life_text.get_width()),
+                    10 * SCALE_FACTOR))
+            pre_display.blit(life_sprite, (
+                    WIDTH - (10 * SCALE_FACTOR + life_sprite.get_width() + life_text.get_width()),
+                    10 * SCALE_FACTOR))
+
+            # Update display
+            screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+            pygame.display.flip()
+
+            # Limit frame rate
+            clock.tick(FPS)
+        if not win or (win and not running):
+            break
         else:
-            glitch.update()
-            glitch.draw(pre_display)
-            score = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
-            if glitch.height > HEIGHT * 3:
-                running = False
-                win = True
-                pygame.mixer.fadeout(1500)
-
-        # Display score
-        score_text = score_font.render(f"Score: {score}", True, WHITE)
-        pre_display.blit(score_text, (10, 10))
-
-        pre_display.blit(life_text, (
-                WIDTH - (10 * SCALE_FACTOR + life_text.get_width()),
-                10 * SCALE_FACTOR))
-        pre_display.blit(life_sprite, (
-                WIDTH - (10 * SCALE_FACTOR + life_sprite.get_width() + life_text.get_width()),
-                10 * SCALE_FACTOR))
-
-        # Update display
-        screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
-        pygame.display.flip()
-
-        # Limit frame rate
-        clock.tick(FPS)
+            message = main_font.render("Next Level", True, GREEN)
+            pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
+            
+            screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+            pygame.display.flip()
+            pygame.time.wait(3000)
 
     # Display win/lose message
     pygame.mixer.music.stop()
@@ -495,12 +532,11 @@ def main(lives):
     
     screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
     pygame.display.flip()
-
     return win
 
 def lose():
     pre_display.fill(BLACK)
-    glitch = g.Glitch(WIDTH, SCALE_FACTOR)
+    glitch = g.Glitch(WIDTH, SCALE_FACTOR, -50)
     GLITCH_SOUND.play(-1)
     while glitch.height < HEIGHT * 3:
         message = main_font.render("Game Over", True, RED)
@@ -554,8 +590,9 @@ def await_start():
                     countdown = True
                     counter = 0
                     START_SOUND.play()
+                    return True
 
-        if not GPIO.input(COIN_PIN) or force_start:
+        if (not DEBUG and not GPIO.input(COIN_PIN) or force_start):
             force_start = False
             countdown = True
             counter = 0
@@ -583,14 +620,16 @@ if __name__ == "__main__":
         pygame.mixer.music.stop()
 
         is_active = False
-        while not is_active:
+        while (not DEBUG and not is_active):
             pygame.time.wait(100)
             
         restart_game = False
         if not await_start(): # await_start() returns False if restart_game == True
             continue
         lives = 3
-        GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
+
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
         client.publish(PUB_TOPIC, "Started")
 
         while True:
