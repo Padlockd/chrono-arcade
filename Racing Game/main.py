@@ -170,7 +170,18 @@ def on_connect(client, userdata, flags, properties):
 client = mqtt.Client()
 client.on_message = on_message
 client.on_connect = on_connect
-client.connect(BROKER)
+
+connected = False
+while not connected:
+    try:
+        client.connect(BROKER, 1883, 20)
+    except:
+        print("Failed to connect")
+        pygame.time.sleep(3000)
+    else:
+        print("Connected")
+        connected = True
+
 restart_game = False
 force_start = False
 is_active = False
@@ -178,6 +189,7 @@ is_active = False
 def main(lives):
     global SCALE_FACTOR
     global restart_game
+    
     # Constants
     LANE_WIDTH = (WIDTH - 180 * SCALE_FACTOR) // 3
     WHITE = (255, 255, 255)
@@ -204,8 +216,9 @@ def main(lives):
     pygame.mixer.music.load("./Audio/RMusicLoop.wav")
     pygame.mixer.music.play()
 
-    prev_left_state = GPIO.input(LEFT_PIN)
-    prev_right_state = GPIO.input(RIGHT_PIN)
+    if not DEBUG:
+        prev_left_state = GPIO.input(LEFT_PIN)
+        prev_right_state = GPIO.input(RIGHT_PIN)
 
     while running:
         if restart_game:
@@ -223,12 +236,14 @@ def main(lives):
                 elif event.key == pygame.K_RIGHT:
                     car.move_right()
             
-        if GPIO.input(LEFT_PIN) != prev_left_state and prev_left_state:
-            car.move_left()
-        if GPIO.input(RIGHT_PIN) != prev_right_state and prev_right_state:
-            car.move_right()
-        prev_left_state = GPIO.input(LEFT_PIN)
-        prev_right_state = GPIO.input(RIGHT_PIN)
+        if not DEBUG:
+            if GPIO.input(LEFT_PIN) != prev_left_state and prev_left_state:
+                car.move_left()
+            if GPIO.input(RIGHT_PIN) != prev_right_state and prev_right_state:
+                car.move_right()
+
+            prev_left_state = GPIO.input(LEFT_PIN)
+            prev_right_state = GPIO.input(RIGHT_PIN)
         
         # Spawn obstacles
         if glitch is None or glitch.delta_height == 1:
@@ -370,7 +385,7 @@ def await_start():
                     counter = 0
                     START_SOUND.play()
         
-        if not GPIO.input(COIN_PIN) or force_start:
+        if not DEBUG and not GPIO.input(COIN_PIN) or force_start:
             force_start = False
             countdown = True
             counter = 0
@@ -386,7 +401,7 @@ if __name__ == "__main__":
         pygame.mixer.music.stop()
 
         is_active = False
-        while not is_active:
+        while (not DEBUG and not is_active):
             pygame.time.wait(100)
             
         restart_game = False
@@ -400,8 +415,7 @@ if __name__ == "__main__":
         
         while True:
             if main(lives): # if player wins
-                screen.fill((0, 0, 0))
-
+                pre_display.fill((0, 0, 0))
                 prompt = score_font.render("Pull right side open.", False, (255, 0, 0))
                 pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
                 screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
@@ -415,6 +429,7 @@ if __name__ == "__main__":
                 if lives <= 1:
                     lose()
 
+                    pre_display.fill((0,0,0))
                     prompt = score_font.render("Pull right side open.", False, (255, 0, 0))
                     pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
                     screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))

@@ -508,7 +508,18 @@ def on_connect(client, userdata, flags, properties):
 client = mqtt.Client()
 client.on_message = on_message
 client.on_connect = on_connect
-client.connect(BROKER)
+
+connected = False
+while not connected:
+    try:
+        client.connect(BROKER, 1883, 20)
+    except:
+        print("Failed to connect")
+        pygame.time.sleep(3000)
+    else:
+        print("Connected")
+        connected = True
+
 restart_game = False
 force_start = False
 player_2_pressed = True
