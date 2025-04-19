@@ -696,7 +696,7 @@ def main(lives):
         if glitch is not None:
             glitch.update(WIDTH)
             glitch.draw(pre_display, WIDTH)
-            if glitch.height > WIDTH * 3:
+            if glitch.height > WIDTH * 2:
                 running = False
                 win = True
                 pygame.mixer.fadeout(1500)
