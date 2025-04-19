@@ -191,11 +191,11 @@ class Enemy(pygame.sprite.Sprite):
 
 class EnemyGroup:
     def __init__(self):
-        global stage
+        global level
         self.enemies = pygame.sprite.Group()
-        self.speed = 1 + stage
+        self.speed = 1 + level
         self.bullets = pygame.sprite.Group()
-        self.shot_chance = 900 - (100 * stage)
+        self.shot_chance = 900 - (100 * level)
 
     def add(self, enemy):
         self.enemies.add(enemy)
@@ -331,7 +331,7 @@ def on_message(client, userdata, message):
     global restart_game
     global is_active
     global force_start
-    global stage
+    global level
 
     payload = message.payload.decode()
     print(payload)
@@ -343,7 +343,7 @@ def on_message(client, userdata, message):
 
     if payload == "activate":
         is_active = True
-        stage = 1
+        level = 1
         if not DEBUG:
             GPIO.output(COIN_POWER_PIN, GPIO.LOW)
 
@@ -376,20 +376,24 @@ if not DEBUG:
 restart_game = False
 is_active = False
 force_start = False
-stage = 1
+level = 1
 background = Background()
 
 def main(lives):
     global background
     global restart_game
-    global stage
+    global level
 
     player = Player()
     player_group = pygame.sprite.Group(player)
+    bullets = pygame.sprite.Group()
 
-    while stage <= MAX_LEVEL:
+    pygame.mixer.music.load("./Audio/SIMusicIntro.wav")
+    pygame.mixer.music.play()
+    pygame.mixer.music.queue("./Audio/SIMusicLoop.wav", ".wav", -1)
+
+    while level <= MAX_LEVEL:
         # Initialize player and sprite groups
-        bullets = pygame.sprite.Group()
         enemy_group = EnemyGroup()
 
         # Create enemies
@@ -405,10 +409,6 @@ def main(lives):
 
         glitch = None
 
-        pygame.mixer.music.load("./Audio/SIMusicIntro.wav")
-        pygame.mixer.music.play()
-        pygame.mixer.music.queue("./Audio/SIMusicLoop.wav", ".wav", -1)
-
         while enemy_group.descend():
             if restart_game:
                 return True
@@ -419,10 +419,9 @@ def main(lives):
 
             player.animate()
             player_group.draw(pre_display)
-            bullets.draw(pre_display)
             enemy_group.draw(pre_display)
             
-            message = main_font.render(f"Level {stage}", True, RED)
+            message = main_font.render(f"Level {level}", True, RED)
             pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
         
             screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
@@ -484,13 +483,13 @@ def main(lives):
                 pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
 
             if glitch is None:
-                if kill_count >= 10 and stage == MAX_LEVEL:
+                if kill_count >= 10 and level == MAX_LEVEL:
                     player.break_gun()
                     glitch = g.Glitch(WIDTH, SCALE_FACTOR, -50)
                     GLITCH_SOUND.play(-1)
                     pygame.mixer.music.stop()
                 elif kill_count >= 28:
-                    stage += 1
+                    level += 1
                     win = True
                     break
                 
@@ -527,12 +526,27 @@ def main(lives):
         if not win or (win and not running):
             break
         else:
-            message = main_font.render("Next Level", True, GREEN)
-            pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
-            
-            screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
-            pygame.display.flip()
-            pygame.time.wait(3000)
+            counter = 180
+            while counter > 0:
+                counter -= 1
+                pre_display.fill(BLACK)
+
+                background.update()
+                background.draw(pre_display)
+
+                bullets.update()
+                keys = pygame.key.get_pressed()
+                player.update(keys)
+
+                bullets.draw(pre_display)
+                player_group.draw(pre_display)
+                
+                message = main_font.render("Level Complete", True, GREEN)
+                pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
+                
+                screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+                pygame.display.flip()
+                clock.tick(FPS)
 
     # Display win/lose message
     pygame.mixer.music.stop()
