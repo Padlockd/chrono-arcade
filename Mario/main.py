@@ -790,7 +790,7 @@ def await_start():
                     countdown = True
                     counter = FPS * 3
                     START_SOUND.play()
-                    break
+                    return True
      
         if (not DEBUG and not GPIO.input(COIN_PIN)) or force_start:
             force_start = False
@@ -826,7 +826,7 @@ if __name__ == "__main__":
         pygame.mixer.music.stop()
         
         is_active = False
-        while not is_active:
+        while (not DEBUG and not is_active):
             pygame.time.wait(100)
             
         restart_game = False
