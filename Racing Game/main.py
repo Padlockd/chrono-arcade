@@ -24,6 +24,7 @@ pygame.init()
 pygame.mixer.init()
 clock = pygame.time.Clock()
 FPS = 30
+MAX_LEVEL = 2
 
 # MQTT settings
 BROKER = "192.168.1.80"
@@ -37,7 +38,7 @@ WIDTH, HEIGHT = 600, 800
 SCALE_FACTOR = 1
 pygame.mouse.set_visible(False)
 
-OBSTACLE_DELAY_MIN, OBSTACLE_DELAY_MAX = 30, 60
+OBSTACLE_DELAY_MIN, OBSTACLE_DELAY_MAX = 15, 25
 speed = 15 * SCALE_FACTOR
 
 # Sprites and animations
@@ -112,6 +113,7 @@ class Car(pygame.sprite.Sprite):
         self.lanes = lanes
         self.lane = 1
         self.rect.center = (self.lanes[self.lane], int(HEIGHT - self.rect.h))
+        self.won = False
     
     def move_left(self):
         if self.lane > 0:
@@ -126,6 +128,8 @@ class Car(pygame.sprite.Sprite):
     def update(self):
         self.texture.update()
         self.image = self.texture.get_sprite()
+        if self.won:
+            self.rect.y -= 10
 
 class Obstacle(pygame.sprite.Sprite):
     def __init__(self, lane):
@@ -185,133 +189,158 @@ while not connected:
 restart_game = False
 force_start = False
 is_active = False
+level = 1
 
 def main(lives):
     global SCALE_FACTOR
     global restart_game
-    
-    # Constants
-    LANE_WIDTH = (WIDTH - 180 * SCALE_FACTOR) // 3
-    WHITE = (255, 255, 255)
-    lanes = [LANE_WIDTH * i + LANE_WIDTH // 2 + 90 * SCALE_FACTOR for i in range(3)]
-
-    life_sprite = texture.Texture(LIFE_SPRITES, 10).get_sprite()
-    life_text = score_font.render(f"x{lives}", True, WHITE)
-
-    # Game loop
-    running = True
-    next_obstacle = random.randint(OBSTACLE_DELAY_MIN, OBSTACLE_DELAY_MAX)
-
-    next_score = SCORE_UPDATE_RATE
-    score = 0
-    glitch = None
-
-    # Initialize car
-    car = Car(lanes)
-    car_group = pygame.sprite.Group(car)
-    obstacles = pygame.sprite.Group()
-    road = Road()
-    win = False
+    global level
     
     pygame.mixer.music.load("./Audio/RMusicLoop.wav")
-    pygame.mixer.music.play()
+    pygame.mixer.music.play(-1)
 
-    if not DEBUG:
-        prev_left_state = GPIO.input(LEFT_PIN)
-        prev_right_state = GPIO.input(RIGHT_PIN)
+    while level <= MAX_LEVEL:
+        # Constants
+        LANE_WIDTH = (WIDTH - 180 * SCALE_FACTOR) // 3
+        WHITE = (255, 255, 255)
+        lanes = [LANE_WIDTH * i + LANE_WIDTH // 2 + 90 * SCALE_FACTOR for i in range(3)]
 
-    while running:
-        if restart_game:
-            return True
-        pre_display.fill(WHITE)
+        life_sprite = texture.Texture(LIFE_SPRITES, 10).get_sprite()
+        life_text = score_font.render(f"x{lives}", True, WHITE)
+
+        # Game loop
+        running = True
+        next_obstacle = random.randint(OBSTACLE_DELAY_MIN, OBSTACLE_DELAY_MAX)
+
+        next_score = SCORE_UPDATE_RATE
+        score = 0
+        glitch = None
+
+        # Initialize car
+        car = Car(lanes)
+        car_group = pygame.sprite.Group(car)
+        obstacles = pygame.sprite.Group()
+        road = Road()
+        win = False
         
-        # Event handling
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                return
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    car.move_left()
-                elif event.key == pygame.K_RIGHT:
-                    car.move_right()
-            
         if not DEBUG:
-            if GPIO.input(LEFT_PIN) != prev_left_state and prev_left_state:
-                car.move_left()
-            if GPIO.input(RIGHT_PIN) != prev_right_state and prev_right_state:
-                car.move_right()
-
             prev_left_state = GPIO.input(LEFT_PIN)
             prev_right_state = GPIO.input(RIGHT_PIN)
-        
-        # Spawn obstacles
-        if glitch is None or glitch.delta_height == 1:
-            next_obstacle -= 1
-            if next_obstacle == 0:
-                next_obstacle = random.randint(OBSTACLE_DELAY_MIN, OBSTACLE_DELAY_MAX)
-                spawn_lanes = random.sample(lanes, 2)
-                for lane in spawn_lanes:
-                    obstacles.add(Obstacle(lane))
 
-        # Increase Score
-        next_score -= 1
-        if next_score == 0:
-            next_score = SCORE_UPDATE_RATE
-            if glitch is None:
-                score += SCORE_DELTA
-            else:
-                score = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
-
-        # Move obstacles
-        for obs in obstacles:
-            obs.move()
-
-        road.update()
-        
-        # Draw car and obstacles
-        road.draw(pre_display)
-        car_group.draw(pre_display)
-        obstacles.draw(pre_display)
-
-        # Draw overlay
-        if glitch is not None:
-            glitch.update()
-            glitch.draw(pre_display)
-            if glitch.height > 3 * HEIGHT:
-                running = False
-                win = True
-                pygame.mixer.fadeout(1500)
-        else:
-            if score >= 4000:
-                glitch = g.Glitch(WIDTH, SCALE_FACTOR, -50)
-                GLITCH_SOUND.play(-1)
-                pygame.mixer.music.fadeout(1000)
+        while running:
+            if restart_game:
+                return True
+            pre_display.fill(WHITE)
             
-            # Check for collisions
-            if len(pygame.sprite.groupcollide(obstacles, car_group, False, False)) > 0:
-                running = False
-                win = False
-                pygame.mixer.music.stop()
-                PLAYER_CRASH_SOUND.play()
-        
-        score_text = score_font.render(f"score: {score}", True, (200, 0, 0))
-        pre_display.blit(score_text, (10 * SCALE_FACTOR, 10 * SCALE_FACTOR))
+            # Event handling
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        car.move_left()
+                    elif event.key == pygame.K_RIGHT:
+                        car.move_right()
+                
+            if not DEBUG:
+                if GPIO.input(LEFT_PIN) != prev_left_state and prev_left_state:
+                    car.move_left()
+                if GPIO.input(RIGHT_PIN) != prev_right_state and prev_right_state:
+                    car.move_right()
 
-        pre_display.blit(life_text, (
-                WIDTH - (10 * SCALE_FACTOR + life_text.get_width()),
-                10 * SCALE_FACTOR))
-        pre_display.blit(life_sprite, (
-                WIDTH - (10 * SCALE_FACTOR + life_sprite.get_width() + life_text.get_width()), 
-                10 * SCALE_FACTOR))
+                prev_left_state = GPIO.input(LEFT_PIN)
+                prev_right_state = GPIO.input(RIGHT_PIN)
+            
+            # Spawn obstacles
+            if glitch is None or glitch.delta_height == 1:
+                next_obstacle -= 1
+                if next_obstacle == 0 and isinstance(score, int) and score < 4500:
+                    next_obstacle = (level + 1) * random.randint(OBSTACLE_DELAY_MIN, OBSTACLE_DELAY_MAX)
+                    spawn_lanes = random.sample(lanes, level)
+                    for lane in spawn_lanes:
+                        obstacles.add(Obstacle(lane))
 
-        screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
-        pygame.display.flip()
-        clock.tick(FPS)
+            # Increase Score
+            next_score -= 1
+            if next_score == 0:
+                next_score = SCORE_UPDATE_RATE
+                if glitch is None:
+                    score += SCORE_DELTA
+                else:
+                    score = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+
+            # Move obstacles
+            for obs in obstacles:
+                obs.move()
+
+            road.update()
+            
+            # Draw car and obstacles
+            road.draw(pre_display)
+            car_group.draw(pre_display)
+            obstacles.draw(pre_display)
+
+            # Draw overlay
+            if glitch is not None:
+                glitch.update()
+                glitch.draw(pre_display)
+                if glitch.height > 3 * HEIGHT:
+                    running = False
+                    win = True
+                    pygame.mixer.fadeout(1500)
+            else:
+                if score >= 3500 and level == MAX_LEVEL:
+                    glitch = g.Glitch(WIDTH, SCALE_FACTOR, -50)
+                    GLITCH_SOUND.play(-1)
+                    pygame.mixer.music.fadeout(1000)
+                elif score >= 5000:
+                    level += 1
+                    win = True
+                    break
+                
+                # Check for collisions
+                if len(pygame.sprite.groupcollide(obstacles, car_group, False, False)) > 0:
+                    running = False
+                    win = False
+                    pygame.mixer.music.stop()
+                    PLAYER_CRASH_SOUND.play()
+            
+            score_text = score_font.render(f"score: {score}", True, (200, 0, 0))
+            pre_display.blit(score_text, (10 * SCALE_FACTOR, 10 * SCALE_FACTOR))
+
+            pre_display.blit(life_text, (
+                    WIDTH - (10 * SCALE_FACTOR + life_text.get_width()),
+                    10 * SCALE_FACTOR))
+            pre_display.blit(life_sprite, (
+                    WIDTH - (10 * SCALE_FACTOR + life_sprite.get_width() + life_text.get_width()), 
+                    10 * SCALE_FACTOR))
+
+            screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+            pygame.display.flip()
+            clock.tick(FPS)
+        if not win or (win and not running):
+            break
+        else:
+            car.won = True
+            while car.rect.y > -(car.rect.h + 240):
+                for obs in obstacles:
+                    obs.move()
+
+                road.update()
+                car.update()
+            
+                road.draw(pre_display)
+                car_group.draw(pre_display)
+                obstacles.draw(pre_display)
+
+                message = main_font.render("Level Complete", True, (0, 255, 0))
+                pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
+                
+                screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+                pygame.display.flip()
+                clock.tick(FPS)
     
-    if win:
-        screen.fill((0, 0, 0))
-        pygame.display.flip()
     return win
 
 def lose():
