@@ -5,6 +5,7 @@ import sys
 import paho.mqtt.client as mqtt
 import texture
 import glitch as g
+import timer
 
 try:
     import RPi.GPIO as GPIO
@@ -368,7 +369,7 @@ if not DEBUG:
             client.connect(BROKER, 1883, 20)
         except:
             print("Failed to connect")
-            pygame.time.sleep(3000)
+            time.sleep(3)
         else:
             print("Connected")
             connected = True
