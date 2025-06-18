@@ -5,7 +5,7 @@ import sys
 import paho.mqtt.client as mqtt
 import texture
 import glitch as g
-import timer
+import time
 
 try:
     import RPi.GPIO as GPIO
