@@ -67,7 +67,7 @@ main_font = pygame.font.Font(FONT_PATH, int(36 * SCALE_FACTOR))
 title_font = pygame.font.Font(FONT_PATH, int(52 * SCALE_FACTOR))
 
 SCORE_UPDATE_RATE = 3
-SCORE_DELTA = 250
+SCORE_DELTA = 25
 
 # Sound
 PLAYER_CRASH_SOUND = pygame.mixer.Sound("./Audio/RCrash.wav")
