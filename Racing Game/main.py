@@ -1,10 +1,12 @@
-import pygame
+attempts = 0
+from time import sleep
 import random
 import string
 import glitch as g
 import texture
 import paho.mqtt.client as mqtt
 import os.path
+import pygame
 
 try:
     import RPi.GPIO as GPIO
@@ -65,7 +67,7 @@ main_font = pygame.font.Font(FONT_PATH, int(36 * SCALE_FACTOR))
 title_font = pygame.font.Font(FONT_PATH, int(52 * SCALE_FACTOR))
 
 SCORE_UPDATE_RATE = 3
-SCORE_DELTA = 25
+SCORE_DELTA = 250
 
 # Sound
 PLAYER_CRASH_SOUND = pygame.mixer.Sound("./Audio/RCrash.wav")
@@ -181,7 +183,7 @@ while not connected:
         client.connect(BROKER, 1883, 20)
     except:
         print("Failed to connect")
-        pygame.time.sleep(3000)
+        sleep(3)
     else:
         print("Connected")
         connected = True
@@ -431,7 +433,7 @@ if __name__ == "__main__":
 
         is_active = False
         while (not DEBUG and not is_active):
-            pygame.time.wait(100)
+            sleep(0.1)
             
         restart_game = False
         if not await_start(): # await_start() returns False if restart_game == True
@@ -452,7 +454,7 @@ if __name__ == "__main__":
                 pygame.display.flip()
                 client.publish(PUB_TOPIC, "Completed")
                 while not restart_game:
-                    pygame.time.wait(100)
+                    sleep(0.1)
                 break
             else:
                 if lives <= 1:
@@ -465,10 +467,10 @@ if __name__ == "__main__":
 
                     client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
-                        pygame.time.wait(100)
+                        sleep(0.1)
                     break
                 else:
-                    pygame.time.wait(1500)
+                    sleep(1.5)
                     lives -= 1
 
 client.loop_stop()
