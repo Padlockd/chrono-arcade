@@ -6,6 +6,7 @@ import random
 import string
 import paho.mqtt.client as mqtt
 import os.path
+import time
 
 try:
     import RPi.GPIO as GPIO
