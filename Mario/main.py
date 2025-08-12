@@ -4,12 +4,13 @@ import texture
 import glitch as G
 import random
 import string
-import paho.mqtt.client as mqtt
 import os.path
 import time
 
 try:
     import RPi.GPIO as GPIO
+    import paho.mqtt.client as mqtt
+
     GPIO.setmode(GPIO.BOARD)
     LEFT_PIN = 3
     RIGHT_PIN = 5
@@ -20,6 +21,12 @@ try:
     COIN_POWER_PIN = 8
     GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
     DEBUG = False
+    
+    # MQTT settings
+    BROKER = "192.168.1.80"
+    PUB_TOPIC = "Arcade/Mario/pub"
+    SUB_TOPIC = "Arcade/Mario/sub"
+
 except:
     print("Starting program without RPi.GPIO")
     DEBUG = True
@@ -40,11 +47,6 @@ SKY = (92, 148, 252)
 BLACK = (0, 0, 0)
 GREEN = (30, 180, 110)
 BLUE = (0, 0, 255)
-
-# MQTT settings
-BROKER = "192.168.1.80"
-PUB_TOPIC = "Arcade/Mario/pub"
-SUB_TOPIC = "Arcade/Mario/sub"
 
 # Initialize screen
 pygame.display.set_caption("Sidescrolling Platformer")
@@ -505,13 +507,14 @@ def on_connect(client, userdata, flags, properties):
     except:
         print("Failed to subscribe")
 
-# Initialize MQTT client
-client = mqtt.Client()
-client.on_message = on_message
-client.on_connect = on_connect
+if not DEBUG:
+    # Initialize MQTT client
+    client = mqtt.Client()
+    client.on_message = on_message
+    client.on_connect = on_connect
 
 connected = False
-while not connected:
+while not connected and not DEBUG:
     try:
         client.connect(BROKER, 1883, 20)
     except:
@@ -819,7 +822,8 @@ def lose():
     pygame.mixer.fadeout(1500)
 
 if __name__ == "__main__":
-    client.loop_start()
+    if not DEBUG:
+        client.loop_start()
 
     while True:
         screen.fill((0, 0, 0))
@@ -837,11 +841,12 @@ if __name__ == "__main__":
         lives = 5
         if not DEBUG:
             GPIO.output(COIN_POWER_PIN, GPIO.LOW)
-        client.publish(PUB_TOPIC, "Started")
+            client.publish(PUB_TOPIC, "Started")
         
         while True:
             if main(lives): # if player wins
-                client.publish(PUB_TOPIC, "Completed")
+                if not DEBUG:
+                    client.publish(PUB_TOPIC, "Completed")
                 screen.fill(BLACK)
                 
                 prompt = score_font.render("Climb through.", False, (255, 0, 0))
@@ -862,7 +867,8 @@ if __name__ == "__main__":
                     pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
                     screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
 
-                    client.publish(PUB_TOPIC, "Completed")
+                    if not DEBUG:
+                        client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
                         if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
                             client.publish(PUB_TOPIC, "P2 Pressed")
@@ -871,7 +877,8 @@ if __name__ == "__main__":
                 else:
                     lives -= 1
 
-client.loop_stop()
+if not DEBUG:
+    client.loop_stop()
 
 pygame.quit()
 sys.exit()

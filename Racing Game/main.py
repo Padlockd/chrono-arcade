@@ -4,12 +4,13 @@ import random
 import string
 import glitch as g
 import texture
-import paho.mqtt.client as mqtt
 import os.path
 import pygame
 
 try:
     import RPi.GPIO as GPIO
+    import paho.mqtt.client as mqtt
+
     GPIO.setmode(GPIO.BOARD)
     LEFT_PIN = 3
     RIGHT_PIN = 5
@@ -18,6 +19,12 @@ try:
     COIN_POWER_PIN = 8
     GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
     DEBUG = False
+    
+    # MQTT settings
+    BROKER = "192.168.1.80"
+    PUB_TOPIC = "Arcade/Racing/pub"
+    SUB_TOPIC = "Arcade/Racing/sub"
+
 except:
     DEBUG = True
 
@@ -27,11 +34,6 @@ pygame.mixer.init()
 clock = pygame.time.Clock()
 FPS = 30
 MAX_LEVEL = 2
-
-# MQTT settings
-BROKER = "192.168.1.80"
-PUB_TOPIC = "Arcade/Racing/pub"
-SUB_TOPIC = "Arcade/Racing/sub"
 
 # Setup display
 pre_display = pygame.surface.Surface((600,800))
@@ -172,13 +174,14 @@ def on_connect(client, userdata, flags, properties):
     except:
         print("Failed to subscribe")
 
-# Initialize MQTT client
-client = mqtt.Client()
-client.on_message = on_message
-client.on_connect = on_connect
+if not DEBUG:
+    # Initialize MQTT client
+    client = mqtt.Client()
+    client.on_message = on_message
+    client.on_connect = on_connect
 
 connected = False
-while not connected:
+while not connected and not DEBUG:
     try:
         client.connect(BROKER, 1883, 20)
     except:
@@ -424,7 +427,8 @@ def await_start():
     return True
 
 if __name__ == "__main__":
-    client.loop_start()
+    if not DEBUG:
+        client.loop_start()
 
     while True:
         screen.fill((0, 0, 0))
@@ -442,7 +446,7 @@ if __name__ == "__main__":
     
         if not DEBUG:
             GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
-        client.publish(PUB_TOPIC, "Started")
+            client.publish(PUB_TOPIC, "Started")
         
         while True:
             if main(lives): # if player wins
@@ -452,7 +456,8 @@ if __name__ == "__main__":
                 screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
 
                 pygame.display.flip()
-                client.publish(PUB_TOPIC, "Completed")
+                if not DEBUG:
+                    client.publish(PUB_TOPIC, "Completed")
                 while not restart_game:
                     sleep(0.1)
                 break
@@ -465,7 +470,8 @@ if __name__ == "__main__":
                     pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
                     screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
 
-                    client.publish(PUB_TOPIC, "Completed")
+                    if not DEBUG:
+                        client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
                         sleep(0.1)
                     break
@@ -473,4 +479,5 @@ if __name__ == "__main__":
                     sleep(1.5)
                     lives -= 1
 
-client.loop_stop()
+if not DEBUG:
+    client.loop_stop()

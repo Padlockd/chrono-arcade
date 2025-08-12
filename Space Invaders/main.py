@@ -2,13 +2,13 @@ import pygame
 import random
 import string
 import sys
-import paho.mqtt.client as mqtt
 import texture
 import glitch as g
 import time
 
 try:
     import RPi.GPIO as GPIO
+    import paho.mqtt.client as mqtt
 
     GPIO.setmode(GPIO.BOARD)
     LEFT_PIN = 3
@@ -19,6 +19,12 @@ try:
     COIN_POWER_PIN = 8
     GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
     DEBUG = False
+    
+    # MQTT settings
+    BROKER = "192.168.1.80"
+    PUB_TOPIC = "Arcade/Space_Invaders/pub"
+    SUB_TOPIC = "Arcade/Space_Invaders/sub"
+
 except:
     print("Starting program without RPi.GPIO")
     DEBUG = True
@@ -40,11 +46,6 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
-
-# MQTT settings
-BROKER = "192.168.1.80"
-PUB_TOPIC = "Arcade/Space_Invaders/pub"
-SUB_TOPIC = "Arcade/Space_Invaders/sub"
 
 # Initialize screen
 pygame.display.set_caption("Space Invaders")
@@ -358,8 +359,8 @@ def on_connect(client, userdata, flags, properties):
         print("Failed to subscribe")
 
 # Initialize MQTT client
-client = mqtt.Client()
 if not DEBUG:
+    client = mqtt.Client()
     client.on_message = on_message
     client.on_connect = on_connect
 
@@ -639,7 +640,8 @@ def await_start():
     return True
 
 if __name__ == "__main__":
-    client.loop_start()
+    if not DEBUG:
+        client.loop_start()
     while True:
         screen.fill((0, 0, 0))
         pygame.display.flip()
@@ -656,7 +658,7 @@ if __name__ == "__main__":
 
         if not DEBUG:
             GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
-        client.publish(PUB_TOPIC, "Started")
+            client.publish(PUB_TOPIC, "Started")
 
         while True:
             if main(lives): # if player wins
@@ -667,7 +669,8 @@ if __name__ == "__main__":
                 screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
 
                 pygame.display.flip()
-                client.publish(PUB_TOPIC, "Completed")
+                if not DEBUG:
+                    client.publish(PUB_TOPIC, "Completed")
                 while not restart_game:
                     pygame.time.wait(100)
                 break
@@ -680,7 +683,8 @@ if __name__ == "__main__":
                     pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
                     screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
 
-                    client.publish(PUB_TOPIC, "Completed")
+                    if not DEBUG:
+                        client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
                         pygame.time.wait(100)
                     break
@@ -688,4 +692,5 @@ if __name__ == "__main__":
                     pygame.time.wait(1500)
                     lives -= 1
 
-client.loop_stop()
+if not DEBUG:
+    client.loop_stop()
