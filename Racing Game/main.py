@@ -463,7 +463,7 @@ if __name__ == "__main__":
                     clock.tick(FPS)
                 break
             else:
-                if lives <= 1:
+                if lives <= 5:
                     lose()
 
                     pre_display.fill((0,0,0))

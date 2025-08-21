@@ -861,7 +861,7 @@ if __name__ == "__main__":
                         player_2_pressed = True
                 break
             else:
-                if lives <= 1:
+                if lives <= 5:
                     lose()
                     
                     prompt = score_font.render("Climb through.", False, (255, 0, 0))
