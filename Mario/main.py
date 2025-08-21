@@ -808,11 +808,11 @@ def lose():
     pre_display.fill(BLACK)
     glitch = G.Glitch(HEIGHT, SCALE_FACTOR)
     GLITCH_SOUND.play(-1)
-    while glitch.height < WIDTH * 3:
+    while glitch.height <= WIDTH * 5:
         message = main_font.render("Game Over", True, (255, 0, 0))
         pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
-        glitch.update(HEIGHT)
-        glitch.draw(pre_display, HEIGHT)
+        glitch.update(WIDTH)
+        glitch.draw(pre_display, WIDTH)
         
         screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
         pygame.display.flip()
@@ -838,7 +838,7 @@ if __name__ == "__main__":
         player_2_pressed = True
         if not await_start(): # await_start() returns False if restart_game == True
             continue
-        lives = 5
+        lives = 1
         if not DEBUG:
             GPIO.output(COIN_POWER_PIN, GPIO.LOW)
             client.publish(PUB_TOPIC, "Started")
@@ -847,14 +847,15 @@ if __name__ == "__main__":
             if main(lives): # if player wins
                 if not DEBUG:
                     client.publish(PUB_TOPIC, "Completed")
-                screen.fill(BLACK)
                 
                 prompt = score_font.render("Climb through.", False, (255, 0, 0))
+                pre_display.fill(BLACK)
                 pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
-                screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+                pre_display = pygame.transform.rotate(pre_display, 90)
 
-                pygame.display.flip()
                 while not restart_game:
+                    screen.blit(pre_display, (0,0))
+                    pygame.display.flip()
                     if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
                         client.publish(PUB_TOPIC, "P2 Pressed")
                         player_2_pressed = True
@@ -864,12 +865,15 @@ if __name__ == "__main__":
                     lose()
                     
                     prompt = score_font.render("Climb through.", False, (255, 0, 0))
+                    pre_display.fill(BLACK)
                     pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
-                    screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+                    pre_display = pygame.transform.rotate(pre_display, 90)
 
                     if not DEBUG:
                         client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
+                        screen.blit(pre_display, (0,0))
+                        pygame.display.flip()
                         if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
                             client.publish(PUB_TOPIC, "P2 Pressed")
                             player_2_pressed = True

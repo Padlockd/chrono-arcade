@@ -625,7 +625,7 @@ def await_start():
             counter = 0
             START_SOUND.play()
             break
-                    
+
         """
         if countdown:
             prompt = score_font.render(str(((FPS * 3) - counter) // FPS + 1), False, GREEN)
@@ -662,31 +662,33 @@ if __name__ == "__main__":
 
         while True:
             if main(lives): # if player wins
-                pre_display.fill(BLACK)
-
                 prompt = score_font.render("Slide right.", False, (255, 0, 0))
+                pre_display.fill(BLACK)
                 pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
-                screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+                pre_display = pygame.transform.rotate(pre_display, 90)
 
-                pygame.display.flip()
                 if not DEBUG:
                     client.publish(PUB_TOPIC, "Completed")
                 while not restart_game:
-                    pygame.time.wait(100)
+                    screen.blit(pre_display, (0,0))
+                    pygame.display.flip()
+                    clock.tick(FPS)
                 break
             else:
                 if lives <= 1:
                     lose()
-                    pre_display.fill(BLACK)
 
                     prompt = score_font.render("Slide right.", False, (255, 0, 0))
+                    pre_display.fill(BLACK)
                     pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
-                    screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+                    pre_display = pygame.transform.rotate(pre_display, 90)
 
                     if not DEBUG:
                         client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
-                        pygame.time.wait(100)
+                        screen.blit(pre_display, (0,0))
+                        pygame.display.flip()
+                        clock.tick(FPS)
                     break
                 else:
                     pygame.time.wait(1500)

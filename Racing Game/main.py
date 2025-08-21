@@ -452,14 +452,15 @@ if __name__ == "__main__":
             if main(lives): # if player wins
                 pre_display.fill((0, 0, 0))
                 prompt = score_font.render("Pull right side open.", False, (255, 0, 0))
-                pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
-                screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+                pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 - prompt.get_height() // 2))
+                pre_display = pygame.transform.rotate(pre_display, 90)
 
-                pygame.display.flip()
                 if not DEBUG:
                     client.publish(PUB_TOPIC, "Completed")
                 while not restart_game:
-                    sleep(0.1)
+                    screen.blit(pre_display, (0,0))
+                    pygame.display.flip()
+                    clock.tick(FPS)
                 break
             else:
                 if lives <= 1:
@@ -467,13 +468,15 @@ if __name__ == "__main__":
 
                     pre_display.fill((0,0,0))
                     prompt = score_font.render("Pull right side open.", False, (255, 0, 0))
-                    pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
-                    screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+                    pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 - prompt.get_height() // 2))
+                    pre_display = pygame.transform.rotate(pre_display, 90)
 
                     if not DEBUG:
                         client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
-                        sleep(0.1)
+                        screen.blit(pre_display, (0,0))
+                        pygame.display.flip()
+                        clock.tick(FPS)
                     break
                 else:
                     sleep(1.5)
