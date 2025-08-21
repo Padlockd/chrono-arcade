@@ -838,7 +838,7 @@ if __name__ == "__main__":
         player_2_pressed = True
         if not await_start(): # await_start() returns False if restart_game == True
             continue
-        lives = 1
+        lives = 5
         if not DEBUG:
             GPIO.output(COIN_POWER_PIN, GPIO.LOW)
             client.publish(PUB_TOPIC, "Started")
@@ -861,7 +861,7 @@ if __name__ == "__main__":
                         player_2_pressed = True
                 break
             else:
-                if lives <= 5:
+                if lives <= 1:
                     lose()
                     
                     prompt = score_font.render("Climb through.", False, (255, 0, 0))
