@@ -617,6 +617,7 @@ def main(lives):
         # Camera offset
         camera_x = 0
         death_delay = 90
+        fade_distance = (camera_bounds[2] - camera_bounds[1]) / TILE_SIZE
 
         castle = Castle(castle_position[0], castle_position[1])
         glitch = None
@@ -632,9 +633,9 @@ def main(lives):
             r, g, b = SKY
             if level != MAX_LEVEL:
                 if camera_x > camera_bounds[1] and camera_x < camera_bounds[2]:
-                    r = 92 - (((camera_x / TILE_SIZE) - 50) / 13.5) * 80
-                    g = 148 - (((camera_x / TILE_SIZE) - 50) / 13.5) * 148
-                    b = 252 - (((camera_x / TILE_SIZE) - 50) / 13.5) * 252
+                    r = 92 - (((camera_x / TILE_SIZE) - 50) / fade_distance) * 80
+                    g = 148 - (((camera_x / TILE_SIZE) - 50) / fade_distance) * 148
+                    b = 252 - (((camera_x / TILE_SIZE) - 50) / fade_distance) * 252
                 elif camera_x >= camera_bounds[2]:
                     r = 12
                     g = 0
@@ -656,7 +657,8 @@ def main(lives):
                     win = True
                     break
 
-            print(f"r: {r}, g: {g}, b: {b}")
+            print(f"fade left: {camera_bounds[1]} right: {camera_bounds[2]} fade distance: {fade_distance}")
+            # print(f"r: {r}, g: {g}, b: {b}")
             pre_display.fill(pygame.Color(int(r), int(g), int(b)))
 
             # Event handling
