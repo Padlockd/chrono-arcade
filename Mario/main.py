@@ -851,10 +851,10 @@ if __name__ == "__main__":
                 prompt = score_font.render("Climb through.", False, (255, 0, 0))
                 pre_display.fill(BLACK)
                 pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
-                pre_display = pygame.transform.rotate(pre_display, 90)
+                instructions = pygame.transform.rotate(pre_display, 90)
 
                 while not restart_game:
-                    screen.blit(pre_display, (0,0))
+                    screen.blit(instructions, (0,0))
                     pygame.display.flip()
                     if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
                         client.publish(PUB_TOPIC, "P2 Pressed")
@@ -867,12 +867,12 @@ if __name__ == "__main__":
                     prompt = score_font.render("Climb through.", False, (255, 0, 0))
                     pre_display.fill(BLACK)
                     pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
-                    pre_display = pygame.transform.rotate(pre_display, 90)
+                    instructions = pygame.transform.rotate(pre_display, 90)
 
                     if not DEBUG:
                         client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
-                        screen.blit(pre_display, (0,0))
+                        screen.blit(instructions, (0,0))
                         pygame.display.flip()
                         if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
                             client.publish(PUB_TOPIC, "P2 Pressed")
