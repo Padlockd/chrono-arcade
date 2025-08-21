@@ -130,6 +130,10 @@ CASTLE_SPRITE = sprite_sheet.images_at([
     pygame.Rect(0, 80, 80, 80)
 ])
 
+ARROW_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(80, 48, 16, 32)
+])
+
 FONT_PATH = "joystix monospace.otf"
 score_font = pygame.font.Font(FONT_PATH, int(24 * SCALE_FACTOR))
 main_font = pygame.font.Font(FONT_PATH, int(36 * SCALE_FACTOR))
@@ -850,7 +854,17 @@ if __name__ == "__main__":
                 
                 prompt = score_font.render("Climb through.", False, (255, 0, 0))
                 pre_display.fill(BLACK)
-                pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
+                pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 - prompt.get_height() // 2))
+                
+                arrow_texture = texture.Texture(ARROW_SPRITE, 1)
+                pre_display.blit(
+                    arrow_texture.get_sprite(), 
+                    (
+                        WIDTH // 2 - arrow_texture.get_sprite().get_width() // 2, 
+                        HEIGHT // 2 + arrow_texture.get_sprite().get_height() // 2 - 5 * SCALE_FACTOR
+                    )
+                )
+
                 instructions = pygame.transform.rotate(pre_display, 90)
 
                 while not restart_game:
@@ -866,7 +880,17 @@ if __name__ == "__main__":
                     
                     prompt = score_font.render("Climb through.", False, (255, 0, 0))
                     pre_display.fill(BLACK)
-                    pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
+                    pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 - prompt.get_height() // 2))
+                    
+                    arrow_texture = texture.Texture(ARROW_SPRITE, 1)
+                    pre_display.blit(
+                        arrow_texture.get_sprite(), 
+                        (
+                            WIDTH // 2 - arrow_texture.get_sprite().get_width() // 2, 
+                            HEIGHT // 2 + arrow_texture.get_sprite().get_height() // 2 - 5 * SCALE_FACTOR
+                        )
+                    )
+
                     instructions = pygame.transform.rotate(pre_display, 90)
 
                     if not DEBUG:

@@ -130,6 +130,10 @@ CASTLE_SPRITE = sprite_sheet.images_at([
     pygame.Rect(0, 80, 80, 80)
 ])
 
+ARROW_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(80, 48, 16, 32)
+])
+
 INT_TO_SPRITE = [BRICKS_SPRITE, BLOCK_SPRITE, PIPE_SPRITE]
 
 FONT_PATH = "joystix monospace.otf"
@@ -531,7 +535,7 @@ restart_game = False
 force_start = False
 player_2_pressed = True
 is_active = False
-level = 2
+level = 1
 
 def load_level():
     player = Player()
@@ -652,7 +656,8 @@ def main(lives):
                     win = True
                     break
 
-            pre_display.fill((int(r), int(g), int(b)))
+            print(f"r: {r}, g: {g}, b: {b}")
+            pre_display.fill(pygame.Color(int(r), int(g), int(b)))
 
             # Event handling
             events = pygame.event.get()
@@ -855,15 +860,27 @@ if __name__ == "__main__":
         
         while True:
             if main(lives): # if player wins
-                client.publish(PUB_TOPIC, "Completed")
-                screen.fill(BLACK)
+                if not DEBUG:
+                    client.publish(PUB_TOPIC, "Completed")
                 
                 prompt = score_font.render("Climb through.", False, (255, 0, 0))
-                pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
-                screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+                pre_display.fill(BLACK)
+                pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 - prompt.get_height() // 2))
+                
+                arrow_texture = texture.Texture(ARROW_SPRITE, 1)
+                pre_display.blit(
+                    arrow_texture.get_sprite(), 
+                    (
+                        WIDTH // 2 - arrow_texture.get_sprite().get_width() // 2, 
+                        HEIGHT // 2 + arrow_texture.get_sprite().get_height() // 2 - 5 * SCALE_FACTOR
+                    )
+                )
 
-                pygame.display.flip()
+                instructions = pygame.transform.rotate(pre_display, 90)
+
                 while not restart_game:
+                    screen.blit(instructions, (0,0))
+                    pygame.display.flip()
                     if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
                         client.publish(PUB_TOPIC, "P2 Pressed")
                         player_2_pressed = True
@@ -873,11 +890,25 @@ if __name__ == "__main__":
                     lose()
                     
                     prompt = score_font.render("Climb through.", False, (255, 0, 0))
-                    pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
-                    screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+                    pre_display.fill(BLACK)
+                    pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 - prompt.get_height() // 2))
+                    
+                    arrow_texture = texture.Texture(ARROW_SPRITE, 1)
+                    pre_display.blit(
+                        arrow_texture.get_sprite(), 
+                        (
+                            WIDTH // 2 - arrow_texture.get_sprite().get_width() // 2, 
+                            HEIGHT // 2 + arrow_texture.get_sprite().get_height() // 2 - 5 * SCALE_FACTOR
+                        )
+                    )
 
-                    client.publish(PUB_TOPIC, "Completed")
+                    instructions = pygame.transform.rotate(pre_display, 90)
+
+                    if not DEBUG:
+                        client.publish(PUB_TOPIC, "Completed")
                     while not restart_game:
+                        screen.blit(instructions, (0,0))
+                        pygame.display.flip()
                         if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
                             client.publish(PUB_TOPIC, "P2 Pressed")
                             player_2_pressed = True
