@@ -712,6 +712,11 @@ def main(lives):
             else:
                 score_text = score_font.render(f"Score: {score}", False, (255, 255, 255))
             pre_display.blit(score_text, (5, 5))
+
+            lives_text = score_font.render(f"{lives} Lives", False, (255, 255, 255))
+            pre_display.blit(lives_text, (WIDTH - lives_text.get_width() - 5, 5))
+
+
             if glitch is not None:
                 glitch.update(WIDTH)
                 glitch.draw(pre_display, WIDTH)
