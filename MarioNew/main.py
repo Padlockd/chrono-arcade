@@ -1,0 +1,891 @@
+import pygame
+import sys
+import texture
+import glitch as G
+import random
+import string
+import paho.mqtt.client as mqtt
+
+try:
+    import RPi.GPIO as GPIO
+    GPIO.setmode(GPIO.BOARD)
+    LEFT_PIN = 3
+    RIGHT_PIN = 5
+    JUMP_PIN = 7
+    COIN_PIN = 11
+    PLAYER_2_PIN = 10
+    GPIO.setup([LEFT_PIN, RIGHT_PIN, JUMP_PIN, COIN_PIN, PLAYER_2_PIN], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    COIN_POWER_PIN = 8
+    GPIO.setup(COIN_POWER_PIN, GPIO.OUT)
+    DEBUG = False
+except:
+    print("Starting program without RPi.GPIO")
+    DEBUG = True
+
+# Initialize Pygame
+pygame.init()
+pygame.mixer.init()
+
+# Screen dimensions
+pre_display = pygame.surface.Surface((480,640))
+if DEBUG:
+    screen = pygame.display.set_mode((640,480))
+else:
+    screen = pygame.display.set_mode((640,480), pygame.FULLSCREEN)
+WIDTH, HEIGHT = 480, 640
+SCALE_FACTOR = 0.66
+pygame.mouse.set_visible(False)
+
+# Colors
+SKY = (92, 148, 252)
+BLACK = (0, 0, 0)
+GREEN = (30, 180, 110)
+BLUE = (0, 0, 255)
+
+# MQTT settings
+BROKER = "192.168.1.80"
+PUB_TOPIC = "Arcade/Mario/pub"
+SUB_TOPIC = "Arcade/Mario/sub"
+
+# Initialize screen
+pygame.display.set_caption("Sidescrolling Platformer")
+
+# Clock for controlling frame rate
+clock = pygame.time.Clock()
+FPS = 30
+MAX_LEVEL = 2
+
+#SPRITES AND STUFF
+TILE_SIZE = 32
+sprite_sheet = texture.SpriteSheet("./Sprites.png", 2, (0, 0, 0))
+FLOOR_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(64, 0, 16, 16)
+])
+FLOOR_SIDE_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(96, 0, 16, 16)
+])
+FLOOR_CORNER_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(112, 0, 16, 16)
+])
+UNDERGROUND_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(80, 0, 16, 16)
+])
+
+BRICKS_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(48, 0, 16, 16)
+])
+BLOCK_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(48, 0, 16, 16)
+])
+LUCKY_BLOCK_SPRITES = sprite_sheet.images_at([
+    pygame.Rect(0, 0, 16, 16),
+    pygame.Rect(16, 0, 16, 16),
+])
+
+GOOMBA_SPRITES = sprite_sheet.images_at([
+    pygame.Rect(0, 16, 16, 16),
+    pygame.Rect(16, 16, 16, 16)
+])
+GOOMBA_DEATH_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(32, 16, 16, 16)
+])
+PIRANHA_PLANT_SPRITES = sprite_sheet.images_at([
+    pygame.Rect(48, 48, 16, 23),
+    pygame.Rect(64, 48, 16, 23),
+])
+
+PLAYER_STAND_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(0, 32, 16, 16)
+])
+PLAYER_RUN_SPRITES = sprite_sheet.images_at([
+    pygame.Rect(16, 32, 16, 16),
+    pygame.Rect(32, 32, 16, 16),
+    pygame.Rect(48, 32, 16, 16)
+])
+PLAYER_JUMP_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(64, 32, 16, 16)
+])
+PLAYER_DEATH_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(80, 32, 16, 16)
+])
+
+CLOUD__SPRITES = sprite_sheet.images_at([
+    pygame.Rect(0, 48, 16, 32),
+    pygame.Rect(16, 48, 16, 32),
+    pygame.Rect(32, 48, 16, 32)
+])
+
+COIN_SPRITES = sprite_sheet.images_at([
+    pygame.Rect(48, 16, 16, 16),
+    pygame.Rect(64, 16, 16, 16),
+    pygame.Rect(80, 16, 16, 16),
+    pygame.Rect(64, 16, 16, 16)
+])
+
+PIPE_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(96, 16, 32, 32)
+])
+
+CASTLE_SPRITE = sprite_sheet.images_at([
+    pygame.Rect(0, 80, 80, 80)
+])
+
+INT_TO_SPRITE = [BRICKS_SPRITE, BLOCK_SPRITE, PIPE_SPRITE]
+
+FONT_PATH = "joystix monospace.otf"
+score_font = pygame.font.Font(FONT_PATH, int(24 * SCALE_FACTOR))
+main_font = pygame.font.Font(FONT_PATH, int(36 * SCALE_FACTOR))
+title_font = pygame.font.Font(FONT_PATH, int(52 * SCALE_FACTOR))
+score = 0
+
+# Sounds
+COIN_SOUND = pygame.mixer.Sound("./Audio/SMCoin.wav")
+COIN_SOUND.set_volume(0.25)
+PLAYER_JUMP_SOUND = pygame.mixer.Sound("./Audio/SMPlayerJump.wav")
+PLAYER_JUMP_SOUND.set_volume(0.25)
+GOOMBA_DEATH_SOUND = pygame.mixer.Sound("./Audio/SMGoombaDeath.wav")
+GOOMBA_DEATH_SOUND.set_volume(0.25)
+GLITCH_SOUND = pygame.mixer.Sound("./Audio/Glitch.wav")
+GLITCH_SOUND.set_volume(0.25)
+PLAYER_DEATH_SOUND = pygame.mixer.Sound("./Audio/SMPlayerDeath.wav")
+START_SOUND = pygame.mixer.Sound("./Audio/CountdownChime.wav")
+START_SOUND.set_volume(0.25)
+
+# Player class
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.texture = texture.Texture(PLAYER_STAND_SPRITE, 5)
+        self.image = self.texture.get_sprite()
+
+        self.rect = self.image.get_rect()
+        self.rect.x = 1 * TILE_SIZE
+        self.rect.y = 13 * TILE_SIZE
+        self.speed_x = 0
+        self.speed_y = 0
+        self.base_speed = 10 * SCALE_FACTOR
+        self.gravity = 1.6 * SCALE_FACTOR
+        self.jump_strength = -24
+        self.on_ground = False
+        self.is_controllable = True
+
+    def update(self, platforms, lucky_blocks):
+        global score
+        self.speed_y += self.gravity
+        self.rect.y += self.speed_y
+        new_items = []
+
+        # Check for collisions with platforms
+        self.on_ground = False
+        if self.is_controllable:
+            for block in lucky_blocks:
+                if self.rect.colliderect(block.rect):
+                    if self.speed_y > 0:  # Falling
+                        self.rect.bottom = block.rect.top
+                        self.speed_y = 0
+                        self.on_ground = True
+                    elif self.speed_y < 0:  # Jumping upwards
+                        self.rect.top = block.rect.bottom
+                        self.speed_y = 0
+                        new_items.append(block.open())
+                        if level != MAX_LEVEL:
+                            score += 250
+
+            for platform in platforms:
+                if self.rect.colliderect(platform.rect):
+                    if self.speed_y > 0:  # Falling
+                        self.rect.bottom = platform.rect.top
+                        self.speed_y = 0
+                        self.on_ground = True
+                    elif self.speed_y < 0:  # Jumping upwards
+                        self.rect.top = platform.rect.bottom
+                        self.speed_y = 0
+
+        self.rect.x += self.speed_x
+        if self.is_controllable:
+            for platform in platforms:
+                if self.rect.colliderect(platform.rect):
+                    if self.speed_x > 0:
+                        self.rect.right = platform.rect.left
+                    elif self.speed_x < 0:
+                        self.rect.left = platform.rect.right
+                        
+            for block in lucky_blocks:
+                if self.rect.colliderect(block.rect):
+                    if self.speed_x > 0:
+                        self.rect.right = block.rect.left
+                    elif self.speed_x < 0:
+                        self.rect.left = block.rect.right
+
+        if self.rect.bottom >= HEIGHT:
+            self.die()
+
+        if self.on_ground:
+            if self.speed_x != 0:
+                self.texture.set_sprite_set(PLAYER_RUN_SPRITES)
+            else:
+                self.texture.set_sprite_set(PLAYER_STAND_SPRITE)
+
+        self.texture.update()
+        self.image = self.texture.get_sprite()
+
+        return (self.is_controllable, new_items)
+        
+    def animate(self):
+        self.texture.update()
+        self.image = self.texture.get_sprite()
+
+    def die(self):
+        if self.is_controllable:
+            self.texture.set_sprite_set(PLAYER_DEATH_SPRITE)
+            PLAYER_DEATH_SOUND.play()
+            self.is_controllable = False
+            self.speed_y = self.jump_strength * SCALE_FACTOR
+            self.speed_x = 0
+
+    def jump(self, force = False):
+        if self.on_ground or force:
+            self.texture.set_sprite_set(PLAYER_JUMP_SPRITE)
+            self.speed_y = self.jump_strength * SCALE_FACTOR
+            PLAYER_JUMP_SOUND.play()
+
+    def move(self, direction):
+        self.speed_x = self.base_speed * direction
+
+    def check_input(self, events):
+        if not self.is_controllable:
+            return
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.jump()
+            if event.type == pygame.KEYUP:
+                if event.key in (pygame.K_LEFT, pygame.K_RIGHT):
+                    self.speed_x = 0
+
+        # Player movement
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] or (not DEBUG and not GPIO.input(LEFT_PIN)):
+            self.move(-1)
+            self.texture.set_flipped(True)
+        if keys[pygame.K_RIGHT] or (not DEBUG and not GPIO.input(RIGHT_PIN)):
+            self.move(1)
+            self.texture.set_flipped(False)
+        if (not DEBUG and not GPIO.input(JUMP_PIN)):
+            self.jump()
+        if (not DEBUG and (GPIO.input(LEFT_PIN) and GPIO.input(RIGHT_PIN))) and not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]):
+            self.speed_x = 0
+
+# Platform class
+class Platform(pygame.sprite.Sprite):
+    def __init__(self, x, y, width, height, sprite_set, flipped):
+        super().__init__()
+        self.texture = texture.Texture(sprite_set, 1)
+        self.texture.set_flipped(flipped)
+        self.image = self.texture.get_sprite()
+
+        self.rect = self.image.get_rect()
+        self.rect.w *= width
+        self.rect.h *= height
+        self.rect.topleft = (x * TILE_SIZE, y * TILE_SIZE)
+        self.width = width
+        self.height = height
+
+    def draw(self, screen, camera_x):
+        for x in range(self.width):
+            for y in range(self.height):
+                screen.blit(self.image, (x * TILE_SIZE - camera_x + self.rect.x, y * TILE_SIZE + self.rect.y))
+
+class Goomba(pygame.sprite.Sprite):
+    def __init__(self, x, y, max_x, min_x):
+        super().__init__()
+        self.texture = texture.Texture(GOOMBA_SPRITES, 15)
+        self.image = self.texture.get_sprite()
+
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x * TILE_SIZE, y * TILE_SIZE)
+        self.speed_x = -3 * SCALE_FACTOR
+        
+        self.max_x = max_x * TILE_SIZE
+        self.min_x = min_x * TILE_SIZE
+        self.death_counter = None
+
+    def update(self, player, enemies):
+        if self.death_counter is not None:
+            self.death_counter -= 1
+            if self.death_counter == 0:
+                self.kill()
+            return
+        
+        self.texture.update()
+        self.image = self.texture.get_sprite()
+        if pygame.Rect.colliderect(self.rect, player.rect) and player.is_controllable:
+            diff_x = abs(self.rect.x - player.rect.x)
+            diff_y = abs(self.rect.y - player.rect.y)
+            if diff_x > diff_y * 2:
+                player.die()
+            else:
+                self.die()
+                player.speed_y = player.jump_strength * SCALE_FACTOR / 2
+
+        self.rect.x += self.speed_x
+
+        switch_direction = False
+        for enemy in enemies:
+            if enemy == self:
+                continue
+            if pygame.Rect.colliderect(self.rect, enemy.rect):
+                switch_direction = True
+        
+        if ((self.rect.x > self.max_x and self.speed_x > 0)
+                or (self.rect.x < self.min_x and self.speed_x < 0)):
+            switch_direction = True
+            
+        if switch_direction:
+            self.speed_x = - self.speed_x
+
+    def die(self):
+        global score
+        self.death_counter = 30
+        self.texture.set_sprite_set(GOOMBA_DEATH_SPRITE)
+        self.image = self.texture.get_sprite()
+        GOOMBA_DEATH_SOUND.play()
+        if level != MAX_LEVEL:
+            score += 100
+                
+    def draw(self, screen, camera_x):
+        screen.blit(self.image, (self.rect.x - camera_x, self.rect.y))
+
+class Piranha_Plant(pygame.sprite.Sprite):
+    def __init__(self, pipe_x, pipe_y):
+        super().__init__()
+        self.texture = texture.Texture(PIRANHA_PLANT_SPRITES, 15)
+        self.image = self.texture.get_sprite()
+
+        self.rect = self.image.get_rect()
+        self.rect.bottomleft = (pipe_x * TILE_SIZE + TILE_SIZE / 2, pipe_y * TILE_SIZE)
+        self.speed_x = -1.5 * SCALE_FACTOR
+        self.death_counter = None
+
+    def update(self, player, enemies):
+        self.texture.update()
+        self.image = self.texture.get_sprite()
+        if pygame.Rect.colliderect(self.rect, player.rect) and player.is_controllable:
+            player.die()
+
+    def draw(self, screen, camera_x):
+        screen.blit(self.image, (self.rect.x - camera_x, self.rect.y))
+
+class Cloud(pygame.sprite.Sprite):
+    def __init__(self, x, y, w):
+        super().__init__()
+        self.x = x
+        self.y = y
+        self.w = w
+        self.texture = texture.Texture(CLOUD__SPRITES, 1)
+
+    def draw(self, screen, camera_x):
+        camera_x /= 2
+        screen.blit(self.texture.get_sprite(), (self.x * TILE_SIZE - camera_x, self.y * TILE_SIZE))
+        self.texture.update()
+        for i in range(self.w):
+            screen.blit(self.texture.get_sprite(), ((self.x + i + 1) * TILE_SIZE - camera_x, self.y * TILE_SIZE))
+        self.texture.update()
+        screen.blit(self.texture.get_sprite(), ((self.x + self.w + 1) * TILE_SIZE - camera_x, self.y * TILE_SIZE))
+        self.texture.update()
+
+class LuckyBlock(Platform):
+    def __init__(self, x, y, item):
+        super().__init__(x, y, 1, 1, LUCKY_BLOCK_SPRITES, False)
+        self.opened = False
+        self.item = item
+
+    def open(self):
+        if not self.opened:
+            self.opened = True
+            self.texture.update()
+            self.image = self.texture.get_sprite()
+            if self.item == "Coin":
+                COIN_SOUND.play()
+                return Coin(self.rect.x, self.rect.y)
+
+class Coin(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.texture = texture.Texture(COIN_SPRITES, 5)
+        self.image = self.texture.get_sprite()
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+        self.speed_y = -15 * SCALE_FACTOR
+
+    def update(self, player):
+        self.texture.update()
+        self.image = self.texture.get_sprite()
+
+        self.rect.y += self.speed_y
+        self.speed_y += SCALE_FACTOR
+        print(self.image)
+        if self.speed_y >= 10:
+            self.kill()
+            return False
+        return True
+            
+    def draw(self, screen, camera_x):
+        screen.blit(self.image, (self.rect.x - camera_x, self.rect.y))
+
+class Castle(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__()
+        self.texture = texture.Texture(CASTLE_SPRITE, 1)
+        self.image = self.texture.get_sprite()
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (pos_x, pos_y)
+        self.glitch_rects = []
+        for i in range(30):
+            w = random.randint(5, 25)
+            h = random.randint(5, 10)
+            x = random.randint(0, 5 * TILE_SIZE - w) + self.rect.x
+            y = random.randint(0, 5 * TILE_SIZE - h) + self.rect.y
+            self.glitch_rects.append([pygame.Rect(x, y, w, h), 0, 0, 0])
+
+    def update(self):
+        for glitch in self.glitch_rects:
+            glitch[1] = max(min(glitch[1] + random.randint(-48, 32), 255), 0) # randomly add (-10 to 10) to rgb and clamp between 0 and 255
+            glitch[2] = max(min(glitch[2] + random.randint(-48, 32), 255), 0)
+            glitch[3] = max(min(glitch[3] + random.randint(-48, 32), 255), 0)
+
+            glitch[0].w = min(max(5, glitch[0].w + random.randint(-3, 3)), 25)
+            glitch[0].h = min(max(5, glitch[0].h + random.randint(-2, 2)), 10)
+
+            if random.randint(0, 20) == 0:
+                glitch[0].x = random.randint(0, 5 * TILE_SIZE - glitch[0].w) + self.rect.x
+                glitch[0].y = random.randint(0, 5 * TILE_SIZE - glitch[0].h) + self.rect.y
+            else:
+                glitch[0].x = min(max(self.rect.x, glitch[0].x + random.randint(-10, 10)), (self.rect.x + 5 * TILE_SIZE) - glitch[0].w)
+                glitch[0].y = min(max(self.rect.y, glitch[0].y + random.randint(-10, 10)), (self.rect.y + 5 * TILE_SIZE) - glitch[0].h)
+                
+            
+    def draw(self, screen, camera_x):
+        screen.blit(self.image, (self.rect.x - camera_x, self.rect.y))
+        for glitch in self.glitch_rects:
+            drawRect = pygame.rect.Rect(glitch[0])
+            drawRect.x -= camera_x
+            pygame.draw.rect(screen, (glitch[1], glitch[2], glitch[3]), drawRect)
+
+def create_floor_section(x, y, w, h):
+    return [
+        (x, y, 1, 1, FLOOR_CORNER_SPRITE, True),  # Ground
+        (x, y + 1, 1, h - 1, FLOOR_SIDE_SPRITE, True),  # Ground
+        (x + 1, y, w - 2, 1, FLOOR_SPRITE, False),  # Ground
+        (x + w - 1, y, 1, 1, FLOOR_CORNER_SPRITE, False),  # Ground
+        (x + 1, y + 1, w - 2, h - 1, UNDERGROUND_SPRITE, False),  # Ground
+        (x + w - 1, y + 1, 1, h - 1, FLOOR_SIDE_SPRITE, False),  # Ground
+    ]
+
+def on_message(client, userdata, message):
+    global restart_game
+    global player_2_pressed
+    global is_active
+    global force_start
+    payload = message.payload.decode()
+    print(payload)
+    if payload == "lock":
+        restart_game = True
+        player_2_pressed = True
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+        client.publish(PUB_TOPIC, "Locked")
+    if payload == "activate":
+        is_active = True
+        player_2_pressed = True
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.HIGH)
+    if payload == "readyP2":
+        player_2_pressed = False
+    if payload == "start":
+        force_start = True
+
+def on_connect(client, userdata, flags, properties):
+    try:
+        client.subscribe(SUB_TOPIC)
+    except:
+        print("Failed to subscribe")
+
+# Initialize MQTT client
+client = mqtt.Client()
+client.on_message = on_message
+client.on_connect = on_connect
+
+connected = False
+while not connected:
+    try:
+        client.connect(BROKER, 1883, 20)
+    except:
+        print("Failed to connect")
+        pygame.time.sleep(3000)
+    else:
+        print("Connected")
+        connected = True
+
+restart_game = False
+force_start = False
+player_2_pressed = True
+is_active = False
+level = 2
+
+def load_level():
+    player = Player()
+    platforms = pygame.sprite.Group()
+    lucky_blocks = pygame.sprite.Group()
+    enemies = pygame.sprite.Group()
+    clouds = pygame.sprite.Group()
+
+    with open(f"./level{level}", "r") as file:
+        line = file.readline().split("#")[0].strip().split(",")
+        camera_bounds = (float(line[0]) * TILE_SIZE, float(line[1]) * TILE_SIZE, float(line[2]) * TILE_SIZE)
+        
+        line = file.readline().split("#")[0].strip().split(",")
+        player_pos = (float(line[0]) * TILE_SIZE, float(line[1]) * TILE_SIZE)
+        player.rect.x, player.rect.y = player_pos
+        level_end = float(line[2]) * TILE_SIZE
+
+        line = file.readline().split("#")[0].strip().split(",")
+        castle_position = (float(line[0]) * TILE_SIZE, float(line[1]) * TILE_SIZE)
+
+        file.readline() # skip empty line
+
+        # platforms
+        line = file.readline().split("#")[0].strip()
+        while line != "":
+            p = line.split(",")
+            platforms.add(Platform(int(p[0]), int(p[1]), int(p[2]), int(p[3]), INT_TO_SPRITE[int(p[4])], False))
+            line = file.readline().split("#")[0].strip()
+
+        # floor sections
+        line = file.readline().split("#")[0].strip()
+        while line != "":
+            p = line.split(",")
+            plats = create_floor_section(int(p[0]), int(p[1]), int(p[2]), int(p[3]))
+            for x, y, w, h, s, f in plats:
+                platforms.add(Platform(x, y, w, h, s, f))
+            line = file.readline().split("#")[0].strip()
+
+        # lucky blocks
+        line = file.readline().split("#")[0].strip()
+        while line != "":
+            p = line.split(",")
+            lucky_blocks.add(LuckyBlock(int(p[0]), int(p[1]), p[2]))
+            line = file.readline().split("#")[0].strip()
+
+        # Goombas
+        line = file.readline().split("#")[0].strip()
+        while line != "":
+            p = line.split(",")
+            enemies.add(Goomba(int(p[0]), int(p[1]), int(p[2]), int(p[3])))
+            line = file.readline().split("#")[0].strip()
+
+        # Piranha plants
+        line = file.readline().split("#")[0].strip()
+        while line != "":
+            p = line.split(",")
+            enemies.add(Piranha_Plant(int(p[0]), int(p[1])))
+            line = file.readline().split("#")[0].strip()
+
+        # Clouds
+        line = file.readline().split("#")[0].strip()
+        while line != "":
+            p = line.split(",")
+            clouds.add(Cloud(int(p[0]), int(p[1]), int(p[2])))
+            line = file.readline().split("#")[0].strip()
+
+    return (camera_bounds, player, level_end, castle_position, platforms, lucky_blocks, enemies, clouds)
+
+def main(lives):
+    global score
+    global restart_game
+    global level
+
+    while level <= MAX_LEVEL:
+        # Game initialization
+        camera_bounds, player, level_end, castle_position, platforms, lucky_blocks, enemies, clouds = load_level()
+        items = []
+
+        # Camera offset
+        camera_x = 0
+        death_delay = 90
+
+        castle = Castle(castle_position[0], castle_position[1])
+        glitch = None
+
+        # Game loop
+        running = True
+        win = False
+        score = 0
+        while death_delay > 0:
+            if restart_game:
+                return True
+
+            r, g, b = SKY
+            if level != MAX_LEVEL:
+                if camera_x > camera_bounds[1] and camera_x < camera_bounds[2]:
+                    r = 92 - (((camera_x / TILE_SIZE) - 50) / 13.5) * 80
+                    g = 148 - (((camera_x / TILE_SIZE) - 50) / 13.5) * 148
+                    b = 252 - (((camera_x / TILE_SIZE) - 50) / 13.5) * 252
+                elif camera_x >= camera_bounds[2]:
+                    r = 12
+                    g = 0
+                    b = 0
+                    score = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+            else:
+                r = 12
+                g = 0
+                b = 0
+                score = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+            
+            if player.rect.x > level_end and glitch is None:
+                if level == MAX_LEVEL:
+                    glitch = G.Glitch(HEIGHT, SCALE_FACTOR)
+                    GLITCH_SOUND.play(-1)
+                    player.speed_x = 0
+                else:
+                    level += 1
+                    win = True
+                    break
+
+            pre_display.fill((int(r), int(g), int(b)))
+
+            # Event handling
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                    running = False
+                    
+            if glitch is None:
+                player.check_input(events)
+
+            # Update player and camera
+            running, new_items = player.update(platforms, lucky_blocks)
+            camera_x = min(max(camera_bounds[0], player.rect.centerx - WIDTH // 2), camera_bounds[2])
+            #camera_x = 72 * TILE_SIZE
+            enemies.update(player, enemies)
+
+            if new_items:
+                items.extend(new_items)
+
+            # Draw platforms with camera offset
+            for cloud in clouds:
+                cloud.draw(pre_display, camera_x)
+            
+            for platform in platforms:
+                platform.draw(pre_display, camera_x)
+
+            for block in lucky_blocks:
+                block.draw(pre_display, camera_x)
+
+            for enemy in enemies:
+                enemy.draw(pre_display, camera_x)
+
+            castle.update()
+            castle.draw(pre_display, camera_x)
+
+            i = []
+            for item in items:
+                if item:
+                    print(item)
+                    if item.update(player):
+                        item.draw(pre_display, camera_x)
+                        i.append(item)
+            items = i
+
+            # Draw player with camera offset
+            pre_display.blit(player.image, (player.rect.x - camera_x, player.rect.y))
+
+            if isinstance(score, int):
+                score_text = score_font.render(f"Score: {score:04d}", False, (255, 255, 255))
+            else:
+                score_text = score_font.render(f"Score: {score}", False, (255, 255, 255))
+            pre_display.blit(score_text, (5, 5))
+            if glitch is not None:
+                glitch.update(WIDTH)
+                glitch.draw(pre_display, WIDTH)
+                if glitch.height > WIDTH:
+                    running = False
+                    win = True
+                    pygame.mixer.fadeout(1500)
+
+            # Update display
+            screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+            pygame.display.flip()
+
+            # Limit frame rate
+            clock.tick(FPS)
+            if not running:
+                death_delay -= 1
+        
+        if not win or (win and not running):
+            break
+
+    return win
+
+def await_start():
+    global restart_game
+    global force_start
+
+    waiting = True
+    counter = 0
+    countdown = False
+
+    player = Player()
+    player_group = pygame.sprite.GroupSingle(player)
+
+    platforms = pygame.sprite.Group()
+    level = [
+        (11, 11, 1, 1, BRICKS_SPRITE, False),
+        (13, 11, 1, 1, BRICKS_SPRITE, False),
+        (15, 11, 1, 1, BRICKS_SPRITE, False),
+    ]
+    level.extend(create_floor_section(-1, 14, 24, 6))
+
+    for x, y, w, h, s, f in level:
+        platforms.add(Platform(x, y, w, h, s, f))
+
+    lucky_blocks = pygame.sprite.Group()
+    level_lucky_blocks = [
+        (12, 11, "Coin"),
+        (14, 11, "Coin"),
+        (13, 8, "Coin"),
+    ]
+
+    for x, y, i in level_lucky_blocks:
+        lucky_blocks.add(LuckyBlock(x, y, i))
+
+    clouds = pygame.sprite.Group()
+    level_clouds = [
+        (3, 4, 2),
+        (12, 6, 1),
+        (25, 5, 3),
+    ]
+    for x, y, w in level_clouds:
+        clouds.add(Cloud(x, y, w))
+
+    pre_display.fill(SKY)
+    player_group.draw(pre_display)
+
+    for platform in platforms:
+        platform.draw(pre_display, 0)
+
+    for block in lucky_blocks:
+        block.draw(pre_display, 0)
+
+    for cloud in clouds:
+        cloud.draw(pre_display, 0)
+    
+    title1 = title_font.render("Pixel", False, (0,0,0))
+    title2 = title_font.render("Jungle", False, (0,0,0))
+
+    pre_display.blit(title1, (WIDTH // 2 - title1.get_width() // 2, HEIGHT // 2 - title1.get_height() // 2 - 5 * SCALE_FACTOR))
+    pre_display.blit(title2, (WIDTH // 2 - title2.get_width() // 2, HEIGHT // 2 + 5 * SCALE_FACTOR))
+
+    prompt = score_font.render("Insert Coin To Start", False, (0, 255, 0))
+    pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2 + title2.get_height()))
+    
+    screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+    pygame.display.flip()
+    
+    while True:
+        if restart_game:
+            return False
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    countdown = True
+                    counter = FPS * 3
+                    START_SOUND.play()
+                    return True
+     
+        if (not DEBUG and not GPIO.input(COIN_PIN)) or force_start:
+            force_start = False
+            countdown = True
+            counter = FPS * 3
+            START_SOUND.play()
+            break
+    return True
+
+def lose():
+    pre_display.fill(BLACK)
+    glitch = G.Glitch(HEIGHT, SCALE_FACTOR)
+    GLITCH_SOUND.play(-1)
+    while glitch.height < WIDTH * 3:
+        message = main_font.render("Game Over", True, (255, 0, 0))
+        pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
+        glitch.update(HEIGHT)
+        glitch.draw(pre_display, HEIGHT)
+        
+        screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+        pygame.display.flip()
+        clock.tick(FPS)
+    screen.fill((0, 0, 0))
+    pygame.display.flip()
+    pygame.mixer.fadeout(1500)
+
+if __name__ == "__main__":
+    client.loop_start()
+
+    while True:
+        screen.fill((0, 0, 0))
+        pygame.display.flip()
+        pygame.mixer.music.stop()
+        
+        is_active = False
+        while (not DEBUG and not is_active):
+            pygame.time.wait(100)
+            
+        restart_game = False
+        player_2_pressed = True
+        if not await_start(): # await_start() returns False if restart_game == True
+            continue
+        lives = 5
+        if not DEBUG:
+            GPIO.output(COIN_POWER_PIN, GPIO.LOW)
+        client.publish(PUB_TOPIC, "Started")
+        
+        while True:
+            if main(lives): # if player wins
+                client.publish(PUB_TOPIC, "Completed")
+                screen.fill(BLACK)
+                
+                prompt = score_font.render("Climb through.", False, (255, 0, 0))
+                pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
+                screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+
+                pygame.display.flip()
+                while not restart_game:
+                    if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
+                        client.publish(PUB_TOPIC, "P2 Pressed")
+                        player_2_pressed = True
+                break
+            else:
+                if lives <= 1:
+                    lose()
+                    
+                    prompt = score_font.render("Climb through.", False, (255, 0, 0))
+                    pre_display.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + prompt.get_height() // 2))
+                    screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
+
+                    client.publish(PUB_TOPIC, "Completed")
+                    while not restart_game:
+                        if (not DEBUG and not GPIO.input(PLAYER_2_PIN)) and not player_2_pressed:
+                            client.publish(PUB_TOPIC, "P2 Pressed")
+                            player_2_pressed = True
+                    break
+                else:
+                    lives -= 1
+
+client.loop_stop()
+
+pygame.quit()
+sys.exit()
