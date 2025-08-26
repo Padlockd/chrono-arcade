@@ -717,10 +717,11 @@ def main(lives):
             if glitch is not None:
                 glitch.update(WIDTH)
                 glitch.draw(pre_display, WIDTH)
-                if glitch.height > WIDTH:
+                if glitch.height > HEIGHT * 3:
                     running = False
                     win = True
                     pygame.mixer.fadeout(1500)
+                    break
 
             # Update display
             screen.blit(pygame.transform.rotate(pre_display, 90), (0,0))
@@ -828,7 +829,7 @@ def lose():
     pre_display.fill(BLACK)
     glitch = G.Glitch(HEIGHT, SCALE_FACTOR)
     GLITCH_SOUND.play(-1)
-    while glitch.height < WIDTH * 3:
+    while glitch.height < HEIGHT * 3:
         message = main_font.render("Game Over", True, (255, 0, 0))
         pre_display.blit(message, (WIDTH // 2 - message.get_width() // 2, HEIGHT // 2 - message.get_height() // 2))
         glitch.update(HEIGHT)
