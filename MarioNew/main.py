@@ -861,6 +861,7 @@ if __name__ == "__main__":
         if not await_start(): # await_start() returns False if restart_game == True
             continue
         lives = 5
+        level = 1
         if not DEBUG:
             GPIO.output(COIN_POWER_PIN, GPIO.LOW)
         client.publish(PUB_TOPIC, "Started")
