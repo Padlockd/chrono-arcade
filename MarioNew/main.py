@@ -696,7 +696,6 @@ def main(lives):
             i = []
             for item in items:
                 if item:
-                    print(item)
                     if item.update(player):
                         item.draw(pre_display, camera_x)
                         i.append(item)
