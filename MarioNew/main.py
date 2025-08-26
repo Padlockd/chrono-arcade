@@ -31,7 +31,7 @@ pre_display = pygame.surface.Surface((480,640))
 if DEBUG:
     screen = pygame.display.set_mode((640,480))
 else:
-    screen = pygame.display.set_mode((640,480), pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((640,480), pygame.FULLSCREEN, vsync=0)
 WIDTH, HEIGHT = 480, 640
 SCALE_FACTOR = 0.66
 pygame.mouse.set_visible(False)
