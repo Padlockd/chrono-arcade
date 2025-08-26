@@ -428,7 +428,6 @@ class Coin(pygame.sprite.Sprite):
 
         self.rect.y += self.speed_y
         self.speed_y += SCALE_FACTOR
-        print(self.image)
         if self.speed_y >= 10:
             self.kill()
             return False
@@ -657,7 +656,6 @@ def main(lives):
                     win = True
                     break
 
-            print(f"fade left: {camera_bounds[1]} right: {camera_bounds[2]} fade distance: {fade_distance}")
             # print(f"r: {r}, g: {g}, b: {b}")
             pre_display.fill(pygame.Color(int(r), int(g), int(b)))
 
