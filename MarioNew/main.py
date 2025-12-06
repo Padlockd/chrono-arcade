@@ -526,7 +526,7 @@ while not connected:
         client.connect(BROKER, 1883, 20)
     except:
         print("Failed to connect")
-        time.sleep(3000)
+        time.sleep(3)
     else:
         print("Connected")
         connected = True
