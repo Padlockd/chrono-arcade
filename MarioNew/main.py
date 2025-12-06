@@ -5,6 +5,7 @@ import glitch as G
 import random
 import string
 import paho.mqtt.client as mqtt
+import time
 
 try:
     import RPi.GPIO as GPIO
@@ -525,7 +526,7 @@ while not connected:
         client.connect(BROKER, 1883, 20)
     except:
         print("Failed to connect")
-        pygame.time.sleep(3000)
+        time.sleep(3000)
     else:
         print("Connected")
         connected = True
