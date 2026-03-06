@@ -154,6 +154,7 @@ def on_message(client, userdata, message):
     global restart_game
     global is_active
     global force_start
+    global level
     payload = message.payload.decode()
     print(payload)
     if payload == "lock":
@@ -163,6 +164,7 @@ def on_message(client, userdata, message):
         client.publish(PUB_TOPIC, "Locked")
     if payload == "activate":
         is_active = True
+        level = 1
         if not DEBUG:
             GPIO.output(COIN_POWER_PIN, GPIO.LOW)
     if payload == "start":
