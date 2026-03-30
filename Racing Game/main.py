@@ -21,7 +21,7 @@ try:
     DEBUG = False
     
     # MQTT settings
-    BROKER = "192.168.1.80"
+    BROKER = "192.168.10.80"
     PUB_TOPIC = "Arcade/Racing/pub"
     SUB_TOPIC = "Arcade/Racing/sub"
 
